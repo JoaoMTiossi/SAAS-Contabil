@@ -35,7 +35,9 @@ const tipoBadgeClasses: Record<string, string> = {
 };
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
+  // Append T12:00:00 for date-only strings to avoid timezone shift
+  const normalized = dateStr.length === 10 ? `${dateStr}T12:00:00` : dateStr;
+  const d = new Date(normalized);
   return d.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -128,7 +130,7 @@ export default function CalendarioFiscalPage() {
 
   async function alterarStatus(item: CalendarioItem, novoStatus: string) {
     try {
-      const res = await fetch(`/api/calendario-fiscal/${item.cliente.cnpj ?? "update"}`, {
+      const res = await fetch(`/api/calendario-fiscal/${item.cliente.cnpj ?? item.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: item.id, status: novoStatus }),
@@ -346,6 +348,7 @@ export default function CalendarioFiscalPage() {
                               <option value="pendente">Pendente</option>
                               <option value="em_andamento">Em andamento</option>
                               <option value="entregue">Entregue</option>
+                              <option value="atrasada">Atrasada</option>
                             </select>
                           </td>
                           <td className="px-4 py-3 text-gray-500">

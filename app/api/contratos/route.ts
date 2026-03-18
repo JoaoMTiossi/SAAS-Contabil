@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sincronizarAlertasContrato } from "@/lib/scheduler";
-import { parseISO } from "date-fns";
 
 // ─── Schema de validação ───────────────────────────────────────────
 
@@ -60,28 +59,33 @@ function parseValorDecimal(valorStr: string | null | undefined): number | null {
 // ─── GET ───────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status");
-  const pagina = parseInt(searchParams.get("pagina") ?? "1");
-  const porPagina = parseInt(searchParams.get("porPagina") ?? "20");
+  try {
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status");
+    const pagina = Math.max(1, parseInt(searchParams.get("pagina") ?? "1") || 1);
+    const porPagina = Math.min(100, Math.max(1, parseInt(searchParams.get("porPagina") ?? "20") || 20));
 
-  const where: Record<string, unknown> = {};
-  if (status) where.status = status;
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
 
-  const [total, contratos] = await Promise.all([
-    prisma.contrato.count({ where }),
-    prisma.contrato.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip: (pagina - 1) * porPagina,
-      take: porPagina,
-      include: {
-        _count: { select: { parcelas: true, obrigacoes: true, alertas: true } },
-      },
-    }),
-  ]);
+    const [total, contratos] = await Promise.all([
+      prisma.contrato.count({ where }),
+      prisma.contrato.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (pagina - 1) * porPagina,
+        take: porPagina,
+        include: {
+          _count: { select: { parcelas: true, obrigacoes: true, alertas: true } },
+        },
+      }),
+    ]);
 
-  return NextResponse.json({ total, pagina, porPagina, contratos });
+    return NextResponse.json({ total, pagina, porPagina, contratos });
+  } catch (err) {
+    console.error("[GET /api/contratos]", err);
+    return NextResponse.json({ erro: "Erro ao listar contratos." }, { status: 500 });
+  }
 }
 
 // ─── POST ──────────────────────────────────────────────────────────

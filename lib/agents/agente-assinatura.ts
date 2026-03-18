@@ -39,7 +39,7 @@ export async function criarPedidosAssinatura(input: CriarAssinaturaInput) {
     await enviarEmail({
       para: assinatura.email,
       assunto: "Você tem um contrato para assinar",
-      corpo: `Olá ${assinatura.nome},\n\nVocê recebeu um contrato para assinar.\n\nAcesse o link para visualizar e assinar: /assinatura/${assinatura.token}\n\nEste link é único e intransferível.`,
+      corpo: `Olá ${assinatura.nome},\n\nVocê recebeu um contrato para assinar.\n\nAcesse o link para visualizar e assinar: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/assinatura/${assinatura.token}\n\nEste link é único e intransferível.`,
     });
   }
 

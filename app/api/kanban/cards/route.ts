@@ -11,7 +11,7 @@ const CriarCardSchema = z.object({
   contratoId: z.string(),
   clienteId: z.string(),
   motivo: z.string().optional(),
-  dataPrevisao: z.string().transform((s) => new Date(s)).optional(),
+  dataPrevisao: z.string().transform((s) => new Date(s)).refine((d) => !isNaN(d.getTime()), { message: "Data inválida" }).optional(),
 });
 
 export async function POST(req: NextRequest) {

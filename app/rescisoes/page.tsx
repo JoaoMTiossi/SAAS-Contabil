@@ -40,7 +40,9 @@ interface KanbanBoard {
 // ─── Helpers ────────────────────────────────────────────────────
 
 function formatDate(iso: string): string {
-  const d = new Date(iso);
+  // Append T12:00:00 for date-only strings to avoid timezone shift
+  const normalized = iso.length === 10 ? `${iso}T12:00:00` : iso;
+  const d = new Date(normalized);
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yyyy = d.getFullYear();
@@ -121,10 +123,15 @@ export default function RescisoesPage() {
         body: JSON.stringify({ colunaId: novaColunaId }),
       });
       if (!res.ok) throw new Error("Erro ao mover card");
-      await fetchBoard();
-      // Update modal state if the moved card is selected
+      const updatedBoard = await fetch(`/api/kanban?escritorioId=${escritorioId}`).then((r) => r.json()) as KanbanBoard;
+      setBoard(updatedBoard);
+      // Update modal state with fresh data from the board
       if (selectedCard?.id === cardId) {
         setSelectedCardColunaId(novaColunaId);
+        const updatedCard = updatedBoard.colunas
+          .flatMap((col) => col.cards)
+          .find((c) => c.id === cardId);
+        if (updatedCard) setSelectedCard(updatedCard);
       }
     } catch {
       alert("Erro ao mover card.");
@@ -141,18 +148,14 @@ export default function RescisoesPage() {
         body: JSON.stringify({ feito }),
       });
       if (!res.ok) throw new Error("Erro ao atualizar checklist");
-      await fetchBoard();
-      // Update selected card if open
+      const updatedBoard = await fetch(`/api/kanban?escritorioId=${escritorioId}`).then((r) => r.json()) as KanbanBoard;
+      setBoard(updatedBoard);
+      // Update selected card with fresh data from the board
       if (selectedCard) {
-        setSelectedCard((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            checklists: prev.checklists.map((c) =>
-              c.id === checklistId ? { ...c, feito } : c
-            ),
-          };
-        });
+        const updatedCard = updatedBoard.colunas
+          .flatMap((col) => col.cards)
+          .find((c) => c.id === selectedCard.id);
+        if (updatedCard) setSelectedCard(updatedCard);
       }
     } catch {
       alert("Erro ao atualizar checklist.");

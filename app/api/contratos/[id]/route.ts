@@ -76,9 +76,14 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const { id } = await params;
 
   try {
+    const contrato = await prisma.contrato.findUnique({ where: { id } });
+    if (!contrato) {
+      return NextResponse.json({ erro: "Contrato não encontrado." }, { status: 404 });
+    }
     await prisma.contrato.delete({ where: { id } });
     return NextResponse.json({ mensagem: "Contrato removido com sucesso." });
-  } catch {
-    return NextResponse.json({ erro: "Contrato não encontrado." }, { status: 404 });
+  } catch (err) {
+    console.error("[DELETE /api/contratos/[id]]", err);
+    return NextResponse.json({ erro: "Erro ao remover contrato." }, { status: 500 });
   }
 }

@@ -16,11 +16,19 @@ const PatchObrigacaoSchema = z.object({
 type Params = { params: Promise<{ id: string; obrigacaoId: string }> };
 
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const { obrigacaoId } = await params;
+  const { id, obrigacaoId } = await params;
 
   try {
     const body = await req.json();
     const { status } = PatchObrigacaoSchema.parse(body);
+
+    // Verify the obrigacao belongs to the specified contract
+    const existing = await prisma.obrigacao.findFirst({
+      where: { id: obrigacaoId, contratoId: id },
+    });
+    if (!existing) {
+      return NextResponse.json({ erro: "Obrigação não encontrada neste contrato." }, { status: 404 });
+    }
 
     const obrigacao = await prisma.obrigacao.update({
       where: { id: obrigacaoId },

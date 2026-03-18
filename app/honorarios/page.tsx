@@ -47,6 +47,8 @@ const STATUS_STYLES: Record<string, string> = {
   pendente: "bg-yellow-100 text-yellow-700",
   atrasado: "bg-red-100 text-red-700",
   cancelado: "bg-gray-100 text-gray-500",
+  ativo: "bg-blue-100 text-blue-700",
+  inativo: "bg-gray-100 text-gray-500",
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -120,21 +122,21 @@ export default function HonorariosPage() {
 
   const fetchClientes = useCallback(async () => {
     try {
-      const res = await fetch(`/api/honorarios?escritorioId=${escritorioId}`);
+      const res = await fetch(`/api/clientes?escritorioId=${escritorioId}`);
       if (!res.ok) return;
-      // We'll use the client list from the honorarios response for now
-      // In a full implementation, there would be a /api/clientes endpoint
+      const data = await res.json();
+      setClientes(
+        (data.clientes ?? []).map((c: { id: string; razaoSocial: string }) => ({
+          id: c.id,
+          razaoSocial: c.razaoSocial,
+        }))
+      );
     } catch {
-      // silently fail
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-    // Fetch clients list for the form dropdown
-    fetch(`/api/honorarios?escritorioId=${escritorioId}`)
-      .then((r) => r.json())
-      .then((data) => {
+      // Fallback: extract clients from honorarios
+      try {
+        const res = await fetch(`/api/honorarios?escritorioId=${escritorioId}`);
+        if (!res.ok) return;
+        const data = await res.json();
         const clienteMap = new Map<string, string>();
         for (const h of data.honorarios ?? []) {
           clienteMap.set(h.clienteId, h.cliente?.razaoSocial ?? "Cliente");
@@ -145,9 +147,16 @@ export default function HonorariosPage() {
             razaoSocial,
           }))
         );
-      })
-      .catch(() => {});
-  }, [fetchData]);
+      } catch {
+        // silently fail
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    fetchClientes();
+  }, [fetchData, fetchClientes]);
 
   /* ── Gerar lançamentos ───────────────────────────────────── */
 

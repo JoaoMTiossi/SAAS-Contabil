@@ -16,11 +16,19 @@ const PatchParcelaSchema = z.object({
 type Params = { params: Promise<{ id: string; parcelaId: string }> };
 
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const { parcelaId } = await params;
+  const { id, parcelaId } = await params;
 
   try {
     const body = await req.json();
     const { status } = PatchParcelaSchema.parse(body);
+
+    // Verify the parcela belongs to the specified contract
+    const existing = await prisma.parcela.findFirst({
+      where: { id: parcelaId, contratoId: id },
+    });
+    if (!existing) {
+      return NextResponse.json({ erro: "Parcela não encontrada neste contrato." }, { status: 404 });
+    }
 
     const parcela = await prisma.parcela.update({
       where: { id: parcelaId },

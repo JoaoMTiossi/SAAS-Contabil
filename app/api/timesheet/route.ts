@@ -9,7 +9,8 @@ import { z } from "zod";
 
 export async function GET(req: NextRequest) {
   const usuarioId = req.nextUrl.searchParams.get("usuarioId");
-  const periodo = (req.nextUrl.searchParams.get("periodo") ?? "semana") as "semana" | "mes";
+  const periodoParam = req.nextUrl.searchParams.get("periodo") ?? "semana";
+  const periodo: "semana" | "mes" = periodoParam === "mes" ? "mes" : "semana";
 
   if (!usuarioId) {
     return NextResponse.json({ erro: "usuarioId é obrigatório." }, { status: 400 });
@@ -29,9 +30,9 @@ const RegistrarSchema = z.object({
   clienteId: z.string(),
   categoria: z.enum(["fiscal", "contabil", "dp", "consultoria", "administrativo"]),
   descricao: z.string().optional(),
-  data: z.string().transform((s) => new Date(s)),
-  horaInicio: z.string().transform((s) => new Date(s)).optional(),
-  horaFim: z.string().transform((s) => new Date(s)).optional(),
+  data: z.string().transform((s) => new Date(s)).refine((d) => !isNaN(d.getTime()), { message: "Data inválida" }),
+  horaInicio: z.string().transform((s) => new Date(s)).refine((d) => !isNaN(d.getTime()), { message: "Hora início inválida" }).optional(),
+  horaFim: z.string().transform((s) => new Date(s)).refine((d) => !isNaN(d.getTime()), { message: "Hora fim inválida" }).optional(),
   duracao: z.number().int().positive(),
 });
 

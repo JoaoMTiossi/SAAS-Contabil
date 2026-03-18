@@ -7,38 +7,49 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const contratoId = searchParams.get("contratoId");
-  const status = searchParams.get("status");
-  const prioridade = searchParams.get("prioridade");
-  const dataInicio = searchParams.get("dataInicio");
-  const dataFim = searchParams.get("dataFim");
-  const pagina = parseInt(searchParams.get("pagina") ?? "1");
-  const porPagina = parseInt(searchParams.get("porPagina") ?? "50");
+  try {
+    const { searchParams } = new URL(req.url);
+    const contratoId = searchParams.get("contratoId");
+    const status = searchParams.get("status");
+    const prioridade = searchParams.get("prioridade");
+    const dataInicio = searchParams.get("dataInicio");
+    const dataFim = searchParams.get("dataFim");
+    const pagina = Math.max(1, parseInt(searchParams.get("pagina") ?? "1") || 1);
+    const porPagina = Math.min(100, Math.max(1, parseInt(searchParams.get("porPagina") ?? "50") || 50));
 
-  const where: Record<string, unknown> = {};
-  if (contratoId) where.contratoId = contratoId;
-  if (status) where.status = status;
-  if (prioridade) where.prioridade = prioridade;
-  if (dataInicio || dataFim) {
-    const dataAlerta: Record<string, Date> = {};
-    if (dataInicio) dataAlerta.gte = new Date(dataInicio);
-    if (dataFim) dataAlerta.lte = new Date(dataFim);
-    where.dataAlerta = dataAlerta;
+    const where: Record<string, unknown> = {};
+    if (contratoId) where.contratoId = contratoId;
+    if (status) where.status = status;
+    if (prioridade) where.prioridade = prioridade;
+    if (dataInicio || dataFim) {
+      const dataAlerta: Record<string, Date> = {};
+      if (dataInicio) {
+        const dInicio = new Date(dataInicio);
+        if (!isNaN(dInicio.getTime())) dataAlerta.gte = dInicio;
+      }
+      if (dataFim) {
+        const dFim = new Date(dataFim);
+        if (!isNaN(dFim.getTime())) dataAlerta.lte = dFim;
+      }
+      if (Object.keys(dataAlerta).length > 0) where.dataAlerta = dataAlerta;
+    }
+
+    const [total, alertas] = await Promise.all([
+      prisma.alerta.count({ where }),
+      prisma.alerta.findMany({
+        where,
+        orderBy: { dataAlerta: "asc" },
+        skip: (pagina - 1) * porPagina,
+        take: porPagina,
+        include: {
+          contrato: { select: { identificador: true, contratante: true, contratado: true } },
+        },
+      }),
+    ]);
+
+    return NextResponse.json({ total, pagina, porPagina, alertas });
+  } catch (err) {
+    console.error("[GET /api/alertas]", err);
+    return NextResponse.json({ erro: "Erro ao listar alertas." }, { status: 500 });
   }
-
-  const [total, alertas] = await Promise.all([
-    prisma.alerta.count({ where }),
-    prisma.alerta.findMany({
-      where,
-      orderBy: { dataAlerta: "asc" },
-      skip: (pagina - 1) * porPagina,
-      take: porPagina,
-      include: {
-        contrato: { select: { identificador: true, contratante: true, contratado: true } },
-      },
-    }),
-  ]);
-
-  return NextResponse.json({ total, pagina, porPagina, alertas });
 }

@@ -10,11 +10,13 @@ export default function ConfiguracoesPage() {
   const [emailRemetente, setEmailRemetente] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState("");
+  const [isErro, setIsErro] = useState(false);
 
   async function salvarDados(e: React.FormEvent) {
     e.preventDefault();
     setSalvando(true);
     setMensagem("");
+    setIsErro(false);
 
     try {
       // Simula salvamento — integrar com API real conforme necessário
@@ -22,6 +24,7 @@ export default function ConfiguracoesPage() {
       setMensagem("Configurações salvas com sucesso.");
     } catch {
       setMensagem("Erro ao salvar configurações.");
+      setIsErro(true);
     } finally {
       setSalvando(false);
     }
@@ -32,7 +35,7 @@ export default function ConfiguracoesPage() {
       <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
 
       {mensagem && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+        <div className={`rounded-lg border px-4 py-3 text-sm ${isErro ? "border-red-200 bg-red-50 text-red-800" : "border-green-200 bg-green-50 text-green-800"}`}>
           {mensagem}
         </div>
       )}

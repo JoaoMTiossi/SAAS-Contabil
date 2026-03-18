@@ -7,7 +7,7 @@ import { registrarPagamento } from "@/lib/agents/agente-cobranca";
 import { z } from "zod";
 
 const PagamentoSchema = z.object({
-  dataPagamento: z.string().transform((s) => new Date(s)),
+  dataPagamento: z.string().transform((s) => new Date(s)).refine((d) => !isNaN(d.getTime()), { message: "Data de pagamento inválida" }),
   valorPago: z.number().positive(),
   observacao: z.string().optional(),
 });
