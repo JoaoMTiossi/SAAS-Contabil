@@ -1,11 +1,12 @@
 /**
  * Agente Extrator
- * Usa Claude para extrair dados estruturados de contratos.
- * Substitui/complementa a extração baseada em regex com compreensão semântica.
+ * Usa LLM (OpenAI/Gemini, selecionável) para extrair dados estruturados de contratos.
+ * Fallback para extração regex se LLM não estiver configurado.
  */
 
-import { getClaudeClient, DEFAULT_MODEL } from "./claude-client";
+import { obterLLMDoEscritorio } from "@/lib/llm/provider";
 import { ContratoExtraido } from "@/types/contrato";
+import { extrairPrazos } from "@/lib/extrator";
 
 const SYSTEM_PROMPT = `Você é um agente especialista em extração de dados de contratos brasileiros.
 Sua tarefa é analisar o texto de um contrato e extrair informações estruturadas.
@@ -59,30 +60,36 @@ Regras:
 - Identifique corretamente contratante vs contratado
 - Detecte cláusulas de renovação automática`;
 
+/**
+ * Extrai dados do contrato usando IA.
+ * Se escritorioId não fornecido ou LLM falhar, usa extração regex.
+ */
 export async function executarAgenteExtrator(
-  textoContrato: string
-): Promise<ContratoExtraido> {
-  const client = getClaudeClient();
+  textoContrato: string,
+  escritorioId?: string
+): Promise<{ dados: ContratoExtraido; metodo: "ia" | "regex" }> {
+  // Tentar extração via IA se escritório configurado
+  if (escritorioId) {
+    try {
+      const llm = await obterLLMDoEscritorio(escritorioId);
 
-  const response = await client.messages.create({
-    model: DEFAULT_MODEL,
-    max_tokens: 4096,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `Analise o seguinte contrato e extraia os dados estruturados:\n\n${textoContrato}`,
-      },
-    ],
-  });
+      const response = await llm.chat([
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `Analise o seguinte contrato e extraia os dados estruturados:\n\n${textoContrato}`,
+        },
+      ]);
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("Agente Extrator não retornou resposta de texto.");
+      const jsonStr = response.content.trim();
+      const parsed = JSON.parse(jsonStr) as ContratoExtraido;
+      return { dados: parsed, metodo: "ia" };
+    } catch (err) {
+      console.warn("[Agente Extrator] Falha na IA, usando regex:", err);
+    }
   }
 
-  const jsonStr = textBlock.text.trim();
-  const parsed = JSON.parse(jsonStr) as ContratoExtraido;
-
-  return parsed;
+  // Fallback: extração regex
+  const dados = extrairPrazos(textoContrato);
+  return { dados, metodo: "regex" };
 }

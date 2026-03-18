@@ -10,9 +10,21 @@ datasource db {
   provider = "postgresql"
 }
 
-// ─────────────────────────────────────────────
+// ═════════════════════════════════════════════
 // Enums
-// ─────────────────────────────────────────────
+// ═════════════════════════════════════════════
+
+enum Role {
+  admin
+  colaborador
+}
+
+enum RegimeTributario {
+  simples_nacional
+  lucro_presumido
+  lucro_real
+  mei
+}
 
 enum StatusContrato {
   ativo
@@ -61,44 +73,226 @@ enum NivelConfianca {
   baixa
 }
 
-// ─────────────────────────────────────────────
-// Contrato
-// ─────────────────────────────────────────────
+enum TipoTemplate {
+  prestacao_servicos
+  consultoria
+  bpo
+  aditivo
+  distrato
+  custom
+}
+
+enum TipoVersao {
+  original
+  aditivo
+  reajuste
+  correcao
+}
+
+enum StatusAssinatura {
+  pendente
+  visualizado
+  assinado
+  expirado
+}
+
+enum Periodicidade {
+  mensal
+  trimestral
+  anual
+}
+
+enum StatusLancamento {
+  pendente
+  pago
+  atrasado
+  cancelado
+}
+
+enum TipoObrigacaoFiscal {
+  acessoria
+  imposto
+}
+
+enum StatusObrigacaoFiscal {
+  pendente
+  em_andamento
+  entregue
+  atrasada
+}
+
+enum CategoriaTimesheet {
+  fiscal
+  contabil
+  dp
+  consultoria
+  administrativo
+}
+
+enum CanalNotificacao {
+  dashboard
+  email
+}
+
+enum LLMProviderEnum {
+  openai
+  gemini
+}
+
+// ═════════════════════════════════════════════
+// Multi-tenancy: Escritório → Usuários + Clientes
+// ═════════════════════════════════════════════
+
+model Escritorio {
+  id    String  @id @default(cuid())
+  nome  String
+  cnpj  String? @unique
+  email String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuarios      Usuario[]
+  clientes      Cliente[]
+  config        EscritorioConfig?
+  kanbanBoards  KanbanBoard[]
+  templates     TemplateContrato[]
+  notificacoes  Notificacao[]
+}
+
+model EscritorioConfig {
+  id             String          @id @default(cuid())
+  escritorioId   String          @unique
+  llmProvider    LLMProviderEnum @default(openai)
+  llmApiKey      String?
+  llmModel       String?
+  emailRemetente String?
+
+  escritorio Escritorio @relation(fields: [escritorioId], references: [id], onDelete: Cascade)
+}
+
+model Usuario {
+  id           String @id @default(cuid())
+  escritorioId String
+  nome         String
+  email        String @unique
+  role         Role   @default(colaborador)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  escritorio         Escritorio          @relation(fields: [escritorioId], references: [id], onDelete: Cascade)
+  timesheets         Timesheet[]
+  metas              MetaProdutividade[]
+  calendarioResponsavel CalendarioFiscalCliente[] @relation("Responsavel")
+}
+
+model Cliente {
+  id               String            @id @default(cuid())
+  escritorioId     String
+  razaoSocial      String
+  nomeFantasia     String?
+  cnpj             String?
+  email            String?
+  telefone         String?
+  regimeTributario RegimeTributario?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  escritorio  Escritorio               @relation(fields: [escritorioId], references: [id], onDelete: Cascade)
+  contratos   Contrato[]
+  honorarios  Honorario[]
+  calendarios CalendarioFiscalCliente[]
+  timesheets  Timesheet[]
+  kanbanCards KanbanCard[]
+}
+
+// ═════════════════════════════════════════════
+// Módulo 1: Geração de Contratos (Templates)
+// ═════════════════════════════════════════════
+
+model TemplateContrato {
+  id           String       @id @default(cuid())
+  escritorioId String?
+  nome         String
+  tipo         TipoTemplate
+  conteudo     String       @db.Text
+  variaveis    Json         @default("[]")
+  ativo        Boolean      @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  escritorio Escritorio? @relation(fields: [escritorioId], references: [id], onDelete: Cascade)
+}
+
+// ═════════════════════════════════════════════
+// Módulo 2: Gestão de Contratos
+// ═════════════════════════════════════════════
 
 model Contrato {
   id            String  @id @default(cuid())
+  clienteId     String?
   identificador String?
   contratante   String?
   contratado    String?
 
-  // Vencimento geral
   dataInicio             DateTime?
   dataFim                DateTime?
   renovacaoAutomatica    Boolean?
   prazoAvisoCancelamento DateTime?
 
-  // Status
   status StatusContrato @default(ativo)
 
-  // Confiança da extração
   confiancaVencimento NivelConfianca @default(baixa)
   confiancaParcelas   NivelConfianca @default(baixa)
   confiancaObrigacoes NivelConfianca @default(baixa)
 
-  // Texto original do contrato
   textoOriginal String? @db.Text
+  tags          String[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  parcelas   Parcela[]
-  obrigacoes Obrigacao[]
-  alertas    Alerta[]
+  cliente     Cliente?          @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  parcelas    Parcela[]
+  obrigacoes  Obrigacao[]
+  alertas     Alerta[]
+  versoes     ContratoVersao[]
+  eventos     ContratoEvento[]
+  assinaturas Assinatura[]
+  kanbanCards KanbanCard[]
 }
 
-// ─────────────────────────────────────────────
-// Parcela
-// ─────────────────────────────────────────────
+model ContratoVersao {
+  id          String     @id @default(cuid())
+  contratoId  String
+  versao      Int
+  tipo        TipoVersao
+  descricao   String?
+  conteudo    String     @db.Text
+  criadoPorId String?
+
+  criadoEm DateTime @default(now())
+
+  contrato Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+}
+
+model ContratoEvento {
+  id         String @id @default(cuid())
+  contratoId String
+  tipo       String
+  descricao  String
+
+  criadoEm DateTime @default(now())
+
+  contrato Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+}
+
+// ═════════════════════════════════════════════
+// Parcela + Obrigação + Alerta (existentes, mantidos)
+// ═════════════════════════════════════════════
 
 model Parcela {
   id         String        @id @default(cuid())
@@ -116,10 +310,6 @@ model Parcela {
   alertas  Alerta[]
 }
 
-// ─────────────────────────────────────────────
-// Obrigacao
-// ─────────────────────────────────────────────
-
 model Obrigacao {
   id          String          @id @default(cuid())
   contratoId  String
@@ -134,10 +324,6 @@ model Obrigacao {
   contrato Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
   alertas  Alerta[]
 }
-
-// ─────────────────────────────────────────────
-// Alerta
-// ─────────────────────────────────────────────
 
 model Alerta {
   id          String @id @default(cuid())
@@ -159,4 +345,219 @@ model Alerta {
   contrato  Contrato   @relation(fields: [contratoId], references: [id], onDelete: Cascade)
   parcela   Parcela?   @relation(fields: [parcelaId], references: [id], onDelete: SetNull)
   obrigacao Obrigacao? @relation(fields: [obrigacaoId], references: [id], onDelete: SetNull)
+}
+
+// ═════════════════════════════════════════════
+// Módulo 3: Assinatura de Contratos
+// ═════════════════════════════════════════════
+
+model Assinatura {
+  id         String           @id @default(cuid())
+  contratoId String
+  nome       String
+  email      String
+  papel      String
+  token      String           @unique @default(uuid())
+  status     StatusAssinatura @default(pendente)
+
+  assinadoEm DateTime?
+  ip         String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contrato Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+}
+
+// ═════════════════════════════════════════════
+// Módulo 4: Cobrança de Honorários
+// ═════════════════════════════════════════════
+
+model Honorario {
+  id                  String        @id @default(cuid())
+  clienteId           String
+  contratoId          String?
+  valor               Decimal       @db.Decimal(12, 2)
+  periodicidade       Periodicidade @default(mensal)
+  diaVencimento       Int
+  indiceReajuste      String?
+  percentualReajuste  Decimal?      @db.Decimal(5, 2)
+  dataProximoReajuste DateTime?
+  ativo               Boolean       @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cliente     Cliente              @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  lancamentos LancamentoHonorario[]
+}
+
+model LancamentoHonorario {
+  id            String          @id @default(cuid())
+  honorarioId   String
+  competencia   String
+  valor         Decimal         @db.Decimal(12, 2)
+  vencimento    DateTime
+  status        StatusLancamento @default(pendente)
+  dataPagamento DateTime?
+  valorPago     Decimal?        @db.Decimal(12, 2)
+  observacao    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  honorario Honorario @relation(fields: [honorarioId], references: [id], onDelete: Cascade)
+}
+
+// ═════════════════════════════════════════════
+// Módulo 5: Calendário Fiscal
+// ═════════════════════════════════════════════
+
+model ObrigacaoFiscal {
+  id            String              @id @default(cuid())
+  nome          String
+  sigla         String?
+  tipo          TipoObrigacaoFiscal
+  regimes       RegimeTributario[]
+  diaVencimento Int?
+  mesVencimento Int?
+  periodicidade Periodicidade       @default(mensal)
+  descricao     String?
+  ativo         Boolean             @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  calendarios CalendarioFiscalCliente[]
+}
+
+model CalendarioFiscalCliente {
+  id             String                @id @default(cuid())
+  clienteId      String
+  obrigacaoId    String
+  competencia    String
+  vencimento     DateTime
+  status         StatusObrigacaoFiscal @default(pendente)
+  responsavelId  String?
+  observacao     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cliente     Cliente         @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  obrigacao   ObrigacaoFiscal @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
+  responsavel Usuario?        @relation("Responsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+}
+
+// ═════════════════════════════════════════════
+// Módulo 6: Fluxo de Rescisão (Kanban)
+// ═════════════════════════════════════════════
+
+model KanbanBoard {
+  id           String @id @default(cuid())
+  escritorioId String
+  nome         String @default("Rescisões")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  escritorio Escritorio    @relation(fields: [escritorioId], references: [id], onDelete: Cascade)
+  colunas    KanbanColuna[]
+}
+
+model KanbanColuna {
+  id      String  @id @default(cuid())
+  boardId String
+  nome    String
+  ordem   Int
+  cor     String?
+
+  board KanbanBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards KanbanCard[]
+}
+
+model KanbanCard {
+  id              String   @id @default(cuid())
+  colunaId        String
+  contratoId      String
+  clienteId       String
+  motivo          String?
+  dataSolicitacao DateTime @default(now())
+  dataPrevisao    DateTime?
+  observacao      String?
+  ordem           Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coluna     KanbanColuna      @relation(fields: [colunaId], references: [id], onDelete: Cascade)
+  contrato   Contrato          @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  cliente    Cliente            @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  checklists KanbanChecklist[]
+}
+
+model KanbanChecklist {
+  id        String  @id @default(cuid())
+  cardId    String
+  descricao String
+  feito     Boolean @default(false)
+  ordem     Int     @default(0)
+
+  card KanbanCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+// ═════════════════════════════════════════════
+// Módulo 7: Timesheet
+// ═════════════════════════════════════════════
+
+model Timesheet {
+  id         String             @id @default(cuid())
+  usuarioId  String
+  clienteId  String
+  categoria  CategoriaTimesheet
+  descricao  String?
+  data       DateTime
+  horaInicio DateTime?
+  horaFim    DateTime?
+  duracao    Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+}
+
+model MetaProdutividade {
+  id        String @id @default(cuid())
+  usuarioId String
+  mes       String
+  metaHoras Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, mes])
+}
+
+// ═════════════════════════════════════════════
+// Notificações
+// ═════════════════════════════════════════════
+
+model Notificacao {
+  id           String          @id @default(cuid())
+  escritorioId String
+  titulo       String
+  mensagem     String
+  canal        CanalNotificacao
+  lida         Boolean         @default(false)
+  link         String?
+  destinatarioEmail String?
+
+  createdAt DateTime @default(now())
+
+  escritorio Escritorio @relation(fields: [escritorioId], references: [id], onDelete: Cascade)
 }
