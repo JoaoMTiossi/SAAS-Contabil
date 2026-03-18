@@ -43,6 +43,14 @@ export async function obterOuCriarBoard(escritorioId: string) {
   });
 
   if (!board) {
+    // Validate that escritorio exists before creating board
+    const escritorio = await prisma.escritorio.findUnique({
+      where: { id: escritorioId },
+    });
+    if (!escritorio) {
+      throw new Error("Escritório não encontrado. Cadastre o escritório antes de usar o kanban.");
+    }
+
     board = await prisma.kanbanBoard.create({
       data: {
         escritorioId,

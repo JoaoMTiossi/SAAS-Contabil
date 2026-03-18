@@ -65,6 +65,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = CriarClienteSchema.parse(body);
 
+    // Validate that escritorio exists
+    const escritorio = await prisma.escritorio.findUnique({
+      where: { id: data.escritorioId },
+    });
+    if (!escritorio) {
+      return NextResponse.json(
+        { erro: "Escritório não encontrado. Verifique o escritorioId." },
+        { status: 404 },
+      );
+    }
+
     const cliente = await prisma.cliente.create({
       data: {
         razaoSocial: data.razaoSocial,
