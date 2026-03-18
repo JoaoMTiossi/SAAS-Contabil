@@ -1,11 +1,9 @@
 /**
  * Agente Geração de Contratos
  * Gera contratos a partir de templates com variáveis preenchidas.
- * Suporte a IA para sugestão de cláusulas.
  */
 
 import { prisma } from "@/lib/prisma";
-import { obterLLMDoEscritorio } from "@/lib/llm/provider";
 
 // ─── Template Engine ─────────────────────────────────────────────
 
@@ -100,50 +98,4 @@ export async function gerarContrato(
     templateNome: template.nome,
     variaveis: input.variaveis,
   };
-}
-
-// ─── IA: Sugestão de Cláusulas ──────────────────────────────────
-
-const SYSTEM_PROMPT_CLAUSULAS = `Você é um assistente jurídico especializado em contratos de prestação de serviços contábeis no Brasil.
-Dado o contexto do contrato, sugira cláusulas adicionais relevantes.
-
-Retorne APENAS um JSON válido (sem markdown) com a estrutura:
-{
-  "clausulas": [
-    {
-      "titulo": "Título da cláusula",
-      "texto": "Texto completo da cláusula",
-      "motivo": "Por que esta cláusula é importante"
-    }
-  ]
-}
-
-Regras:
-- Sugira entre 2 e 5 cláusulas
-- Foque em proteção jurídica para ambas as partes
-- Use linguagem jurídica formal brasileira
-- Considere a LGPD quando aplicável`;
-
-export interface ClausulaSugerida {
-  titulo: string;
-  texto: string;
-  motivo: string;
-}
-
-export async function sugerirClausulas(
-  escritorioId: string,
-  contexto: string
-): Promise<ClausulaSugerida[]> {
-  const llm = await obterLLMDoEscritorio(escritorioId);
-
-  const response = await llm.chat([
-    { role: "system", content: SYSTEM_PROMPT_CLAUSULAS },
-    {
-      role: "user",
-      content: `Contexto do contrato:\n${contexto}\n\nSugira cláusulas adicionais relevantes.`,
-    },
-  ]);
-
-  const parsed = JSON.parse(response.content);
-  return parsed.clausulas as ClausulaSugerida[];
 }

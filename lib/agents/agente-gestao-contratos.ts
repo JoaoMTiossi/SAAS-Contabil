@@ -1,10 +1,9 @@
 /**
  * Agente Gestão de Contratos
- * Versionamento, timeline, busca, categorização e análise por IA.
+ * Versionamento, timeline, busca e categorização.
  */
 
 import { prisma } from "@/lib/prisma";
-import { obterLLMDoEscritorio } from "@/lib/llm/provider";
 
 // ─── Busca e Listagem ────────────────────────────────────────────
 
@@ -119,43 +118,4 @@ export async function obterTimeline(contratoId: string) {
     where: { contratoId },
     orderBy: { criadoEm: "desc" },
   });
-}
-
-// ─── IA: Análise de Contrato ─────────────────────────────────────
-
-const SYSTEM_PROMPT_ANALISE = `Você é um analista jurídico-contábil especializado em contratos brasileiros.
-Analise o contrato e retorne APENAS um JSON válido (sem markdown):
-
-{
-  "resumo": "Resumo executivo em 2-3 frases",
-  "riscos": [
-    { "descricao": "...", "severidade": "alta|media|baixa", "recomendacao": "..." }
-  ],
-  "clausulas_importantes": [
-    { "tipo": "multa|rescisão|renovação|confidencialidade|garantia|outro", "descricao": "...", "impacto": "..." }
-  ],
-  "pontos_atencao": ["..."],
-  "score_risco": 42
-}`;
-
-export interface AnaliseContrato {
-  resumo: string;
-  riscos: Array<{ descricao: string; severidade: string; recomendacao: string }>;
-  clausulas_importantes: Array<{ tipo: string; descricao: string; impacto: string }>;
-  pontos_atencao: string[];
-  score_risco: number;
-}
-
-export async function analisarContrato(
-  escritorioId: string,
-  textoContrato: string
-): Promise<AnaliseContrato> {
-  const llm = await obterLLMDoEscritorio(escritorioId);
-
-  const response = await llm.chat([
-    { role: "system", content: SYSTEM_PROMPT_ANALISE },
-    { role: "user", content: `Analise o seguinte contrato:\n\n${textoContrato}` },
-  ]);
-
-  return JSON.parse(response.content) as AnaliseContrato;
 }

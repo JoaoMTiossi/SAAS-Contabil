@@ -2,16 +2,11 @@
  * POST /api/upload
  * Recebe um arquivo .docx ou .txt e retorna o JSON extraído (para revisão).
  * Não salva no banco — apenas extrai e retorna para o usuário revisar.
- *
- * Query params:
- *   ?mode=ia&escritorioId=xxx  → usa LLM (OpenAI/Gemini) para extração
- *   sem params                 → usa extração regex (padrão)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { extrairTextoDe } from "@/lib/extrator";
 import { executarAgenteExtrator } from "@/lib/agents/agente-extrator";
-import { analisarContrato } from "@/lib/agents/agente-gestao-contratos";
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,28 +50,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const mode = req.nextUrl.searchParams.get("mode");
-    const escritorioId = req.nextUrl.searchParams.get("escritorioId") ?? undefined;
-
-    const { dados, metodo } = await executarAgenteExtrator(
-      texto,
-      mode === "ia" ? escritorioId : undefined
-    );
-
-    // Se modo IA, também roda análise de riscos
-    let analise = null;
-    if (mode === "ia" && escritorioId) {
-      try {
-        analise = await analisarContrato(escritorioId, texto);
-      } catch {
-        // Análise é opcional — não falha o upload
-      }
-    }
+    const dados = await executarAgenteExtrator(texto);
 
     return NextResponse.json({
       extraido: dados,
-      metodo,
-      analise,
       texto_original: texto.substring(0, 5000),
     });
   } catch (err) {

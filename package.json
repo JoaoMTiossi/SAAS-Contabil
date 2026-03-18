@@ -12,8 +12,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.79.0",
-    "@prisma/adapter-pg": "^7.4.1",
+"@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "@types/pg": "^8.16.0",
     "date-fns": "^4.1.0",

@@ -1,6 +1,6 @@
 /**
  * GET  /api/escritorio/config?escritorioId=xxx — obter config
- * PUT  /api/escritorio/config — atualizar config (LLM, email, etc.)
+ * PUT  /api/escritorio/config — atualizar config (email, etc.)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -21,17 +21,13 @@ export async function GET(req: NextRequest) {
     if (!config) {
       return NextResponse.json({
         escritorioId,
-        llmProvider: "openai",
-        llmApiKey: null,
-        llmModel: null,
         emailRemetente: null,
       });
     }
 
-    // Mascarar API key
     return NextResponse.json({
-      ...config,
-      llmApiKey: config.llmApiKey ? `${config.llmApiKey.substring(0, 8)}...` : null,
+      escritorioId: config.escritorioId,
+      emailRemetente: config.emailRemetente,
     });
   } catch (err) {
     console.error("[GET /api/escritorio/config]", err);
@@ -41,9 +37,6 @@ export async function GET(req: NextRequest) {
 
 const ConfigSchema = z.object({
   escritorioId: z.string(),
-  llmProvider: z.enum(["openai", "gemini"]).optional(),
-  llmApiKey: z.string().optional(),
-  llmModel: z.string().optional(),
   emailRemetente: z.string().email().optional(),
 });
 
@@ -56,22 +49,16 @@ export async function PUT(req: NextRequest) {
       where: { escritorioId: data.escritorioId },
       create: {
         escritorioId: data.escritorioId,
-        llmProvider: data.llmProvider ?? "openai",
-        llmApiKey: data.llmApiKey,
-        llmModel: data.llmModel,
         emailRemetente: data.emailRemetente,
       },
       update: {
-        ...(data.llmProvider && { llmProvider: data.llmProvider }),
-        ...(data.llmApiKey && { llmApiKey: data.llmApiKey }),
-        ...(data.llmModel !== undefined && { llmModel: data.llmModel }),
         ...(data.emailRemetente && { emailRemetente: data.emailRemetente }),
       },
     });
 
     return NextResponse.json({
-      ...config,
-      llmApiKey: config.llmApiKey ? `${config.llmApiKey.substring(0, 8)}...` : null,
+      escritorioId: config.escritorioId,
+      emailRemetente: config.emailRemetente,
     });
   } catch (err) {
     if (err instanceof z.ZodError) {
