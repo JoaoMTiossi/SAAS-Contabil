@@ -1,0 +1,102 @@
+/**
+ * GET  /api/clientes?escritorioId=xxx — listar clientes do escritório
+ * POST /api/clientes — criar um novo cliente
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+
+// ─── Schema de validação ───────────────────────────────────────────
+
+const CriarClienteSchema = z.object({
+  razaoSocial: z.string().min(1, "Razão social é obrigatória."),
+  nomeFantasia: z.string().nullable().optional(),
+  cnpj: z.string().nullable().optional(),
+  email: z.string().email("E-mail inválido.").nullable().optional(),
+  telefone: z.string().nullable().optional(),
+  regimeTributario: z
+    .enum(["simples_nacional", "lucro_presumido", "lucro_real", "mei"])
+    .nullable()
+    .optional(),
+  escritorioId: z.string().min(1, "escritorioId é obrigatório."),
+});
+
+// ─── GET ───────────────────────────────────────────────────────────
+
+export async function GET(req: NextRequest) {
+  const escritorioId = req.nextUrl.searchParams.get("escritorioId");
+
+  if (!escritorioId) {
+    return NextResponse.json(
+      { erro: "escritorioId é obrigatório." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const clientes = await prisma.cliente.findMany({
+      where: { escritorioId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: {
+          select: {
+            contratos: true,
+            honorarios: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ clientes });
+  } catch (err) {
+    console.error("[GET /api/clientes]", err);
+    return NextResponse.json(
+      { erro: "Erro ao listar clientes." },
+      { status: 500 },
+    );
+  }
+}
+
+// ─── POST ──────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const data = CriarClienteSchema.parse(body);
+
+    const cliente = await prisma.cliente.create({
+      data: {
+        razaoSocial: data.razaoSocial,
+        nomeFantasia: data.nomeFantasia ?? null,
+        cnpj: data.cnpj ?? null,
+        email: data.email ?? null,
+        telefone: data.telefone ?? null,
+        regimeTributario: data.regimeTributario ?? null,
+        escritorioId: data.escritorioId,
+      },
+      include: {
+        _count: {
+          select: {
+            contratos: true,
+            honorarios: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(cliente, { status: 201 });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { erro: "Dados inválidos", detalhes: err.issues },
+        { status: 400 },
+      );
+    }
+    console.error("[POST /api/clientes]", err);
+    return NextResponse.json(
+      { erro: "Erro ao criar cliente." },
+      { status: 500 },
+    );
+  }
+}
