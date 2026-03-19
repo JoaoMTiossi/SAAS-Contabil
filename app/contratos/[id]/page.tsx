@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { AlertaCard } from "@/components/alertas/AlertaCard";
 import { ConfiancaBadge } from "@/components/contratos/ConfiancaBadge";
 import { TipoAlerta, PrioridadeAlerta, NivelConfianca } from "@/types/contrato";
+import Link from "next/link";
 import { ParcelaActions } from "./ParcelaActions";
 import { ObrigacaoActions } from "./ObrigacaoActions";
 import { ContratoStatusActions } from "./ContratoStatusActions";
@@ -60,7 +61,16 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
             {contrato.contratado && <span>Contratado: <strong>{contrato.contratado}</strong></span>}
           </div>
         </div>
-        <ContratoStatusActions id={contrato.id} status={contrato.status} />
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/api/contratos/${contrato.id}/pdf`}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            target="_blank"
+          >
+            Baixar PDF
+          </Link>
+          <ContratoStatusActions id={contrato.id} status={contrato.status} />
+        </div>
       </div>
 
       {/* Vencimento Geral */}

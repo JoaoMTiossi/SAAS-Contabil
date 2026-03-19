@@ -34,6 +34,9 @@ export async function GET(req: NextRequest) {
       smtpUser: escritorio.config?.smtpUser ?? null,
       smtpPass: escritorio.config?.smtpPass ? "••••••••" : null,
       smtpSecure: escritorio.config?.smtpSecure ?? true,
+      llmProvider: escritorio.config?.llmProvider ?? "openai",
+      llmApiKey: escritorio.config?.llmApiKey ? "••••••••" : null,
+      llmModel: escritorio.config?.llmModel ?? null,
     });
   } catch (err) {
     console.error("[GET /api/escritorio/config]", err);
@@ -52,6 +55,9 @@ const ConfigSchema = z.object({
   smtpUser: z.string().optional().nullable(),
   smtpPass: z.string().optional().nullable(),
   smtpSecure: z.boolean().optional(),
+  llmProvider: z.enum(["openai", "gemini"]).optional(),
+  llmApiKey: z.string().optional().nullable(),
+  llmModel: z.string().optional().nullable(),
 });
 
 export async function PUT(req: NextRequest) {
@@ -82,6 +88,11 @@ export async function PUT(req: NextRequest) {
       configData.smtpPass = data.smtpPass;
     }
     if (data.smtpSecure !== undefined) configData.smtpSecure = data.smtpSecure;
+    if (data.llmProvider !== undefined) configData.llmProvider = data.llmProvider;
+    if (data.llmApiKey !== undefined && data.llmApiKey !== "••••••••") {
+      configData.llmApiKey = data.llmApiKey;
+    }
+    if (data.llmModel !== undefined) configData.llmModel = data.llmModel;
 
     await prisma.escritorioConfig.upsert({
       where: { escritorioId: data.escritorioId },

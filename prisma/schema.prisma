@@ -223,6 +223,9 @@ model Cliente {
   calendarios CalendarioFiscalCliente[]
   timesheets  Timesheet[]
   kanbanCards KanbanCard[]
+
+  @@index([escritorioId])
+  @@index([cnpj])
 }
 
 // ═════════════════════════════════════════════
@@ -280,6 +283,10 @@ model Contrato {
   eventos     ContratoEvento[]
   assinaturas Assinatura[]
   kanbanCards KanbanCard[]
+
+  @@index([clienteId])
+  @@index([status])
+  @@index([dataFim])
 }
 
 model ContratoVersao {
@@ -362,6 +369,10 @@ model Alerta {
   contrato  Contrato   @relation(fields: [contratoId], references: [id], onDelete: Cascade)
   parcela   Parcela?   @relation(fields: [parcelaId], references: [id], onDelete: SetNull)
   obrigacao Obrigacao? @relation(fields: [obrigacaoId], references: [id], onDelete: SetNull)
+
+  @@index([contratoId])
+  @@index([status])
+  @@index([dataAlerta])
 }
 
 // ═════════════════════════════════════════════
@@ -425,6 +436,10 @@ model LancamentoHonorario {
   updatedAt DateTime @updatedAt
 
   honorario Honorario @relation(fields: [honorarioId], references: [id], onDelete: Cascade)
+
+  @@index([honorarioId])
+  @@index([status])
+  @@index([vencimento])
 }
 
 // ═════════════════════════════════════════════
@@ -465,6 +480,10 @@ model CalendarioFiscalCliente {
   cliente     Cliente         @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   obrigacao   ObrigacaoFiscal @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
   responsavel Usuario?        @relation("Responsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+
+  @@index([clienteId])
+  @@index([competencia])
+  @@index([status])
 }
 
 // ═════════════════════════════════════════════
@@ -577,4 +596,7 @@ model Notificacao {
   createdAt DateTime @default(now())
 
   escritorio Escritorio @relation(fields: [escritorioId], references: [id], onDelete: Cascade)
+
+  @@index([escritorioId])
+  @@index([lida])
 }

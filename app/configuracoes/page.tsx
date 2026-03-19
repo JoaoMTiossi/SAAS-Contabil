@@ -21,6 +21,9 @@ export default function ConfiguracoesPage() {
     smtpUser: "",
     smtpPass: "",
     smtpSecure: true,
+    llmProvider: "openai",
+    llmApiKey: "",
+    llmModel: "",
   });
 
   const carregar = useCallback(async () => {
@@ -40,6 +43,9 @@ export default function ConfiguracoesPage() {
           smtpUser: data.smtpUser ?? "",
           smtpPass: data.smtpPass ?? "",
           smtpSecure: data.smtpSecure ?? true,
+          llmProvider: data.llmProvider ?? "openai",
+          llmApiKey: data.llmApiKey ?? "",
+          llmModel: data.llmModel ?? "",
         });
       }
     } catch { /* ignore */ }
@@ -71,6 +77,9 @@ export default function ConfiguracoesPage() {
           smtpUser: form.smtpUser || null,
           smtpPass: form.smtpPass || null,
           smtpSecure: form.smtpSecure,
+          llmProvider: form.llmProvider,
+          llmApiKey: form.llmApiKey || null,
+          llmModel: form.llmModel || null,
         }),
       });
 
@@ -235,6 +244,54 @@ export default function ConfiguracoesPage() {
               <label htmlFor="smtpSecure" className="text-sm text-gray-700">
                 Conexão segura (TLS/SSL)
               </label>
+            </div>
+          </div>
+        </section>
+
+        {/* Configuração IA (LLM) */}
+        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Inteligência Artificial (LLM)</h2>
+          <p className="mb-4 text-xs text-gray-500">
+            Configure uma API de IA para análise automática de contratos, sugestões de cláusulas e mais.
+          </p>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label htmlFor="llmProvider" className="text-sm font-medium text-gray-700">Provedor</label>
+              <select
+                id="llmProvider"
+                value={form.llmProvider}
+                onChange={(e) => setForm({ ...form, llmProvider: e.target.value })}
+                className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm bg-white"
+              >
+                <option value="openai">OpenAI (GPT)</option>
+                <option value="gemini">Google Gemini</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="llmApiKey" className="text-sm font-medium text-gray-700">Chave de API</label>
+              <input
+                id="llmApiKey"
+                type="password"
+                value={form.llmApiKey}
+                onChange={(e) => setForm({ ...form, llmApiKey: e.target.value })}
+                placeholder={form.llmProvider === "openai" ? "sk-..." : "AIza..."}
+                className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="llmModel" className="text-sm font-medium text-gray-700">
+                Modelo (opcional)
+              </label>
+              <input
+                id="llmModel"
+                value={form.llmModel}
+                onChange={(e) => setForm({ ...form, llmModel: e.target.value })}
+                placeholder={form.llmProvider === "openai" ? "gpt-4o-mini" : "gemini-1.5-flash"}
+                className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
+              />
+              <p className="text-xs text-gray-400">
+                Deixe em branco para usar o modelo padrão.
+              </p>
             </div>
           </div>
         </section>
