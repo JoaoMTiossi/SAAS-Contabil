@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-
-// TODO: obter do contexto de autenticação
-const ESCRITORIO_ID = "escritorio_default";
+import { useAuth } from "@/lib/auth/useAuth";
 
 type RegimeTributario = "simples_nacional" | "lucro_presumido" | "lucro_real" | "mei";
 
@@ -38,6 +36,7 @@ const emptyForm = {
 };
 
 export default function ClientesPage() {
+  const { escritorioId: ESCRITORIO_ID, loading: authLoading } = useAuth();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -56,11 +55,11 @@ export default function ClientesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ESCRITORIO_ID]);
 
   useEffect(() => {
-    fetchClientes();
-  }, [fetchClientes]);
+    if (!authLoading && ESCRITORIO_ID) fetchClientes();
+  }, [fetchClientes, authLoading, ESCRITORIO_ID]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));

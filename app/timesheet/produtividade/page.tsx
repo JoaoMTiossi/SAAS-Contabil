@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-
-// TODO: obter do contexto de autenticação
-const escritorioId = "demo";
+import { useAuth } from "@/lib/auth/useAuth";
 
 interface CategoriaBreakdown {
   categoria: string;
@@ -38,6 +36,7 @@ function getProgressColor(pct: number): string {
 }
 
 export default function ProdutividadePage() {
+  const { escritorioId } = useAuth();
   const hoje = new Date();
   const mesDefault = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
 
@@ -60,7 +59,7 @@ export default function ProdutividadePage() {
     } finally {
       setLoading(false);
     }
-  }, [mes]);
+  }, [mes, escritorioId]);
 
   useEffect(() => {
     fetchData();

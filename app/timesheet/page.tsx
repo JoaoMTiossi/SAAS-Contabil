@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-
-// TODO: obter do contexto de autenticação
-const usuarioId = "demo-user";
-const escritorioId = "demo";
+import { useAuth } from "@/lib/auth/useAuth";
 
 interface RegistroTimesheet {
   id: string;
@@ -38,6 +35,7 @@ function formatData(iso: string): string {
 }
 
 export default function TimesheetPage() {
+  const { escritorioId, usuarioId } = useAuth();
   const [periodo, setPeriodo] = useState<"semana" | "mes">("semana");
   const [registros, setRegistros] = useState<RegistroTimesheet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +64,7 @@ export default function TimesheetPage() {
     } finally {
       setLoading(false);
     }
-  }, [periodo]);
+  }, [periodo, usuarioId]);
 
   useEffect(() => {
     fetchRegistros();

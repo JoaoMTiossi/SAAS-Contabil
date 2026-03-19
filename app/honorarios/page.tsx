@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-
-// TODO: obter do contexto de autenticação
-const escritorioId = "demo";
+import { useAuth } from "@/lib/auth/useAuth";
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -71,6 +69,7 @@ function formatBRL(v: number | string) {
 /* ── Component ─────────────────────────────────────────────── */
 
 export default function HonorariosPage() {
+  const { escritorioId } = useAuth();
   const [honorarios, setHonorarios] = useState<Honorario[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -118,7 +117,7 @@ export default function HonorariosPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [escritorioId]);
 
   const fetchClientes = useCallback(async () => {
     try {
@@ -151,12 +150,14 @@ export default function HonorariosPage() {
         // silently fail
       }
     }
-  }, []);
+  }, [escritorioId]);
 
   useEffect(() => {
-    fetchData();
-    fetchClientes();
-  }, [fetchData, fetchClientes]);
+    if (escritorioId) {
+      fetchData();
+      fetchClientes();
+    }
+  }, [fetchData, fetchClientes, escritorioId]);
 
   /* ── Gerar lançamentos ───────────────────────────────────── */
 

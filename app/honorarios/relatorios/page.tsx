@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-
-// TODO: obter do contexto de autenticação
-const escritorioId = "demo";
+import { useAuth } from "@/lib/auth/useAuth";
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -39,6 +37,7 @@ function getCurrentMonth(): string {
 /* ── Component ─────────────────────────────────────────────── */
 
 export default function RelatoriosPage() {
+  const { escritorioId } = useAuth();
   const [tipo, setTipo] = useState<"mensal" | "aging">("mensal");
   const [competencia, setCompetencia] = useState(getCurrentMonth);
   const [loading, setLoading] = useState(true);
@@ -70,7 +69,7 @@ export default function RelatoriosPage() {
     } finally {
       setLoading(false);
     }
-  }, [tipo, competencia]);
+  }, [tipo, competencia, escritorioId]);
 
   useEffect(() => {
     fetchRelatorio();

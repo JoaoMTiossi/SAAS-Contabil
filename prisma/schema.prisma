@@ -158,6 +158,17 @@ model Escritorio {
   kanbanBoards  KanbanBoard[]
   templates     TemplateContrato[]
   notificacoes  Notificacao[]
+  modulos       EscritorioModulo[]
+}
+
+model EscritorioModulo {
+  id           String @id @default(cuid())
+  escritorioId String
+  modulo       String
+
+  escritorio Escritorio @relation(fields: [escritorioId], references: [id], onDelete: Cascade)
+
+  @@unique([escritorioId, modulo])
 }
 
 model EscritorioConfig {
@@ -176,6 +187,7 @@ model Usuario {
   escritorioId String
   nome         String
   email        String @unique
+  senha        String
   role         Role   @default(colaborador)
 
   createdAt DateTime @default(now())

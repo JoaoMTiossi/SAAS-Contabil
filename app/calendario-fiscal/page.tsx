@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-
-// TODO: obter do contexto de autenticação
-const escritorioId = "demo";
+import { useAuth } from "@/lib/auth/useAuth";
 
 type CalendarioItem = {
   id: string;
@@ -53,6 +51,7 @@ function getCurrentMonth(): string {
 }
 
 export default function CalendarioFiscalPage() {
+  const { escritorioId } = useAuth();
   const [competencia, setCompetencia] = useState(getCurrentMonth);
   const [itens, setItens] = useState<CalendarioItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -77,7 +76,7 @@ export default function CalendarioFiscalPage() {
     } finally {
       setLoading(false);
     }
-  }, [competencia]);
+  }, [competencia, escritorioId]);
 
   useEffect(() => {
     carregarCalendario();

@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-
-// TODO: obter do contexto de autenticação
-const escritorioId = "demo";
+import { useAuth } from "@/lib/auth/useAuth";
 
 interface RentabilidadeCliente {
   clienteId: string;
@@ -26,6 +24,7 @@ function formatHoras(horas: number): string {
 }
 
 export default function RentabilidadePage() {
+  const { escritorioId } = useAuth();
   const hoje = new Date();
   const mesDefault = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
 
@@ -51,7 +50,7 @@ export default function RentabilidadePage() {
     } finally {
       setLoading(false);
     }
-  }, [mes]);
+  }, [mes, escritorioId]);
 
   useEffect(() => {
     fetchData();

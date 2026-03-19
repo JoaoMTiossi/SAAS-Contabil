@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-
-// TODO: obter do contexto de autenticação
-const escritorioId = "demo";
+import { useAuth } from "@/lib/auth/useAuth";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -52,6 +50,7 @@ function formatDate(iso: string): string {
 // ─── Component ──────────────────────────────────────────────────
 
 export default function RescisoesPage() {
+  const { escritorioId } = useAuth();
   const [board, setBoard] = useState<KanbanBoard | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -79,7 +78,7 @@ export default function RescisoesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [escritorioId]);
 
   useEffect(() => {
     fetchBoard();
