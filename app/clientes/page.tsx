@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth/useAuth";
+import Pagination from "@/components/Pagination";
 
 type RegimeTributario = "simples_nacional" | "lucro_presumido" | "lucro_real" | "mei";
 
@@ -39,6 +40,8 @@ export default function ClientesPage() {
   const { escritorioId: ESCRITORIO_ID, loading: authLoading } = useAuth();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pagina, setPagina] = useState(1);
+  const porPagina = 15;
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -245,6 +248,7 @@ export default function ClientesPage() {
           </button>
         </div>
       ) : (
+        <>
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
           <table className="w-full text-sm">
             <thead className="border-b border-gray-100 bg-gray-50">
@@ -259,7 +263,7 @@ export default function ClientesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {clientes.map((c) => (
+              {clientes.slice((pagina - 1) * porPagina, pagina * porPagina).map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">{c.razaoSocial}</div>
@@ -278,6 +282,12 @@ export default function ClientesPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          pagina={pagina}
+          totalPaginas={Math.ceil(clientes.length / porPagina)}
+          onChange={setPagina}
+        />
+        </>
       )}
     </div>
   );

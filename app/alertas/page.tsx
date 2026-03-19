@@ -3,11 +3,25 @@ import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { AlertaCard } from "@/components/alertas/AlertaCard";
 import { TipoAlerta, PrioridadeAlerta } from "@/types/contrato";
+import { getSession } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
 type AlertaComContrato = Awaited<ReturnType<typeof getAlertas>>[number];
 
-async function getAlertas(status?: string, prioridade?: string) {
+async function getAlertas(escritorioId: string, status?: string, prioridade?: string) {
+  const clienteIds = (
+    await prisma.cliente.findMany({
+      where: { escritorioId },
+      select: { id: true },
+    })
+  ).map((c) => c.id);
+
   const where: Record<string, unknown> = {};
+  if (clienteIds.length > 0) {
+    where.contrato = { clienteId: { in: clienteIds } };
+  } else {
+    where.contrato = { clienteId: "__none__" };
+  }
   if (status) where.status = status;
   if (prioridade) where.prioridade = prioridade;
 
@@ -28,8 +42,11 @@ export default async function AlertasPage({
 }: {
   searchParams: Promise<{ status?: string; prioridade?: string }>;
 }) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const { status, prioridade } = await searchParams;
-  const alertas = await getAlertas(status, prioridade);
+  const alertas = await getAlertas(session.user.escritorioId, status, prioridade);
 
   const statusOptions = [
     { value: "", label: "Todos" },
@@ -40,10 +57,10 @@ export default async function AlertasPage({
 
   const prioridadeOptions = [
     { value: "", label: "Todas" },
-    { value: "critico", label: "🚨 Crítico" },
-    { value: "urgente", label: "🔔 Urgente" },
-    { value: "atencao", label: "⚠️ Atenção" },
-    { value: "info", label: "ℹ️ Info" },
+    { value: "critico", label: "Crítico" },
+    { value: "urgente", label: "Urgente" },
+    { value: "atencao", label: "Atenção" },
+    { value: "info", label: "Info" },
   ];
 
   return (

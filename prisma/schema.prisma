@@ -178,6 +178,11 @@ model EscritorioConfig {
   llmApiKey      String?
   llmModel       String?
   emailRemetente String?
+  smtpHost       String?
+  smtpPort       Int?
+  smtpUser       String?
+  smtpPass       String?
+  smtpSecure     Boolean         @default(true)
 
   escritorio Escritorio @relation(fields: [escritorioId], references: [id], onDelete: Cascade)
 }

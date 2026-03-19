@@ -1,6 +1,6 @@
 /**
- * GET  /api/escritorio/config?escritorioId=xxx — obter config
- * PUT  /api/escritorio/config — atualizar config (email, etc.)
+ * GET  /api/escritorio/config?escritorioId=xxx — obter config completa
+ * PUT  /api/escritorio/config — atualizar config (escritório + SMTP + email)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -14,20 +14,26 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const config = await prisma.escritorioConfig.findUnique({
-      where: { escritorioId },
+    const escritorio = await prisma.escritorio.findUnique({
+      where: { id: escritorioId },
+      include: { config: true },
     });
 
-    if (!config) {
-      return NextResponse.json({
-        escritorioId,
-        emailRemetente: null,
-      });
+    if (!escritorio) {
+      return NextResponse.json({ erro: "Escritório não encontrado." }, { status: 404 });
     }
 
     return NextResponse.json({
-      escritorioId: config.escritorioId,
-      emailRemetente: config.emailRemetente,
+      escritorioId: escritorio.id,
+      nome: escritorio.nome,
+      cnpj: escritorio.cnpj,
+      email: escritorio.email,
+      emailRemetente: escritorio.config?.emailRemetente ?? null,
+      smtpHost: escritorio.config?.smtpHost ?? null,
+      smtpPort: escritorio.config?.smtpPort ?? null,
+      smtpUser: escritorio.config?.smtpUser ?? null,
+      smtpPass: escritorio.config?.smtpPass ? "••••••••" : null,
+      smtpSecure: escritorio.config?.smtpSecure ?? true,
     });
   } catch (err) {
     console.error("[GET /api/escritorio/config]", err);
@@ -37,7 +43,15 @@ export async function GET(req: NextRequest) {
 
 const ConfigSchema = z.object({
   escritorioId: z.string(),
-  emailRemetente: z.string().email().optional(),
+  nome: z.string().min(1).optional(),
+  cnpj: z.string().optional(),
+  email: z.string().email().optional(),
+  emailRemetente: z.string().email().optional().nullable(),
+  smtpHost: z.string().optional().nullable(),
+  smtpPort: z.number().int().optional().nullable(),
+  smtpUser: z.string().optional().nullable(),
+  smtpPass: z.string().optional().nullable(),
+  smtpSecure: z.boolean().optional(),
 });
 
 export async function PUT(req: NextRequest) {
@@ -45,21 +59,40 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const data = ConfigSchema.parse(body);
 
-    const config = await prisma.escritorioConfig.upsert({
+    // Update escritorio basic info
+    const updateEscritorio: Record<string, unknown> = {};
+    if (data.nome) updateEscritorio.nome = data.nome;
+    if (data.cnpj !== undefined) updateEscritorio.cnpj = data.cnpj || null;
+    if (data.email) updateEscritorio.email = data.email;
+
+    if (Object.keys(updateEscritorio).length > 0) {
+      await prisma.escritorio.update({
+        where: { id: data.escritorioId },
+        data: updateEscritorio,
+      });
+    }
+
+    // Update config (upsert)
+    const configData: Record<string, unknown> = {};
+    if (data.emailRemetente !== undefined) configData.emailRemetente = data.emailRemetente;
+    if (data.smtpHost !== undefined) configData.smtpHost = data.smtpHost;
+    if (data.smtpPort !== undefined) configData.smtpPort = data.smtpPort;
+    if (data.smtpUser !== undefined) configData.smtpUser = data.smtpUser;
+    if (data.smtpPass !== undefined && data.smtpPass !== "••••••••") {
+      configData.smtpPass = data.smtpPass;
+    }
+    if (data.smtpSecure !== undefined) configData.smtpSecure = data.smtpSecure;
+
+    await prisma.escritorioConfig.upsert({
       where: { escritorioId: data.escritorioId },
       create: {
         escritorioId: data.escritorioId,
-        emailRemetente: data.emailRemetente,
+        ...configData,
       },
-      update: {
-        ...(data.emailRemetente && { emailRemetente: data.emailRemetente }),
-      },
+      update: configData,
     });
 
-    return NextResponse.json({
-      escritorioId: config.escritorioId,
-      emailRemetente: config.emailRemetente,
-    });
+    return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ erro: "Dados inválidos", detalhes: err.issues }, { status: 400 });

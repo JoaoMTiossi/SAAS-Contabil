@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/useAuth";
+import Pagination from "@/components/Pagination";
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -88,6 +89,9 @@ export default function HonorariosPage() {
     periodicidade: "mensal",
   });
   const [salvando, setSalvando] = useState(false);
+  const [paginaHon, setPaginaHon] = useState(1);
+  const [paginaLanc, setPaginaLanc] = useState(1);
+  const porPagina = 15;
 
   /* ── Fetch data ──────────────────────────────────────────── */
 
@@ -374,6 +378,7 @@ export default function HonorariosPage() {
           Nenhum honorário cadastrado ainda. Clique em &quot;Novo Honorário&quot; para começar.
         </div>
       ) : (
+        <>
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead className="border-b bg-gray-50">
@@ -386,7 +391,7 @@ export default function HonorariosPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {honorarios.map((h) => (
+              {honorarios.slice((paginaHon - 1) * porPagina, paginaHon * porPagina).map((h) => (
                 <tr key={h.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {h.cliente?.razaoSocial ?? "—"}
@@ -404,6 +409,12 @@ export default function HonorariosPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          pagina={paginaHon}
+          totalPaginas={Math.ceil(honorarios.length / porPagina)}
+          onChange={setPaginaHon}
+        />
+        </>
       )}
 
       {/* Lançamentos pendentes / atrasados */}
@@ -426,6 +437,7 @@ export default function HonorariosPage() {
             Nenhum lançamento pendente ou atrasado.
           </div>
         ) : (
+          <>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <table className="w-full text-sm">
               <thead className="border-b bg-gray-50">
@@ -439,7 +451,7 @@ export default function HonorariosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {lancamentos.map((l) => (
+                {lancamentos.slice((paginaLanc - 1) * porPagina, paginaLanc * porPagina).map((l) => (
                   <tr key={l.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {l.honorario?.cliente?.razaoSocial ?? "—"}
@@ -468,6 +480,12 @@ export default function HonorariosPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            pagina={paginaLanc}
+            totalPaginas={Math.ceil(lancamentos.length / porPagina)}
+            onChange={setPaginaLanc}
+          />
+          </>
         )}
       </section>
     </div>
