@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { cancelarAlertasParcela } from "@/lib/scheduler";
+import { getSession } from "@/lib/auth/session";
 
 const PatchParcelaSchema = z.object({
   status: z.enum(["pendente", "pago", "cancelado", "atrasado"]),
@@ -16,6 +17,9 @@ const PatchParcelaSchema = z.object({
 type Params = { params: Promise<{ id: string; parcelaId: string }> };
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const { id, parcelaId } = await params;
 
   try {

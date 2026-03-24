@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { obterOuCriarBoard } from "@/lib/agents/agente-rescisao";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
   const escritorioId = req.nextUrl.searchParams.get("escritorioId");

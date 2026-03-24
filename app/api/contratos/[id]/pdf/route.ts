@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { gerarPDFContrato } from "@/lib/pdf/gerar-pdf-contrato";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET(
   _req: NextRequest,

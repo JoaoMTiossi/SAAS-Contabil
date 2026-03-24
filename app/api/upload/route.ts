@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extrairTextoDe } from "@/lib/extrator";
 import { executarAgenteExtrator } from "@/lib/agents/agente-extrator";
+import { getSession } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {

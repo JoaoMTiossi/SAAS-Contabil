@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sincronizarAlertasContrato } from "@/lib/scheduler";
+import { getSession } from "@/lib/auth/session";
 
 // ─── Schema de validação ───────────────────────────────────────────
 
@@ -59,6 +60,9 @@ function parseValorDecimal(valorStr: string | null | undefined): number | null {
 // ─── GET ───────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
@@ -91,6 +95,9 @@ export async function GET(req: NextRequest) {
 // ─── POST ──────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const body = await req.json();
     const data = CriarContratoSchema.parse(body);

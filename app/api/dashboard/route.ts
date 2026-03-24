@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { montarDashboard } from "@/lib/agents/agente-menu";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
   const escritorioId = req.nextUrl.searchParams.get("escritorioId");

@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { gerarLancamentosMes } from "@/lib/agents/agente-cobranca";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { getSession } from "@/lib/auth/session";
 
 const Schema = z.object({
   escritorioId: z.string(),

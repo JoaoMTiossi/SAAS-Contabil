@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth/session";
 
 // ─── Schema de validação ───────────────────────────────────────────
 
@@ -25,6 +26,9 @@ const CriarClienteSchema = z.object({
 // ─── GET ───────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const escritorioId = req.nextUrl.searchParams.get("escritorioId");
 
   if (!escritorioId) {
@@ -61,6 +65,9 @@ export async function GET(req: NextRequest) {
 // ─── POST ──────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const body = await req.json();
     const data = CriarClienteSchema.parse(body);

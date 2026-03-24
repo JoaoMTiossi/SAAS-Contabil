@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { atualizarChecklist } from "@/lib/agents/agente-rescisao";
 import { z } from "zod";
+import { getSession } from "@/lib/auth/session";
 
 const ToggleSchema = z.object({
   feito: z.boolean(),

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { seedObrigacoesFiscais } from "@/lib/agents/agente-calendario-fiscal";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET() {
   try {

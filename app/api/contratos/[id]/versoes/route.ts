@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarVersao, listarVersoes } from "@/lib/agents/agente-gestao-contratos";
 import { z } from "zod";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET(
   _req: NextRequest,

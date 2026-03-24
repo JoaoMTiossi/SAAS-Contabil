@@ -11,14 +11,19 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   async chat(messages: LLMMessage[], options?: LLMOptions): Promise<string> {
-    const response = await this.client.chat.completions.create({
-      model: options?.model || this.defaultModel,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      temperature: options?.temperature ?? 0.3,
-      max_tokens: options?.maxTokens ?? 2048,
-    });
+    try {
+      const response = await this.client.chat.completions.create({
+        model: options?.model || this.defaultModel,
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        temperature: options?.temperature ?? 0.3,
+        max_tokens: options?.maxTokens ?? 2048,
+      });
 
-    return response.choices[0]?.message?.content ?? "";
+      return response.choices[0]?.message?.content ?? "";
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      throw new Error(`OpenAI API call failed: ${message}`);
+    }
   }
 
   getName(): string {

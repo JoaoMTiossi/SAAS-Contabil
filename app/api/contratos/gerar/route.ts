@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { gerarContrato } from "@/lib/agents/agente-geracao-contratos";
 import { z } from "zod";
+import { getSession } from "@/lib/auth/session";
 
 const GerarContratoSchema = z.object({
   templateId: z.string(),

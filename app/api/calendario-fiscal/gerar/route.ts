@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { gerarCalendarioMes } from "@/lib/agents/agente-calendario-fiscal";
 import { z } from "zod";
+import { getSession } from "@/lib/auth/session";
 
 const Schema = z.object({
   escritorioId: z.string(),
@@ -12,6 +13,9 @@ const Schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const body = await req.json();
     const data = Schema.parse(body);

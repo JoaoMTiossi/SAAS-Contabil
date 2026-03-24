@@ -12,10 +12,11 @@ import { processarAlertasVencidos } from "@/lib/scheduler";
 export async function POST(req: NextRequest) {
   const secretKey = req.headers.get("x-api-key");
 
-  if (
-    process.env.API_SECRET_KEY &&
-    secretKey !== process.env.API_SECRET_KEY
-  ) {
+  if (!process.env.API_SECRET_KEY) {
+    return NextResponse.json({ erro: "API_SECRET_KEY não configurada." }, { status: 500 });
+  }
+
+  if (secretKey !== process.env.API_SECRET_KEY) {
     return NextResponse.json({ erro: "Não autorizado." }, { status: 401 });
   }
 

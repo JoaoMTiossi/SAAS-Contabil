@@ -35,8 +35,13 @@ export class GeminiProvider implements LLMProvider {
       ...(systemMsg ? { systemInstruction: { role: "user" as const, parts: [{ text: systemMsg.content }] } } : {}),
     });
 
-    const result = await chat.sendMessage(lastMsg.parts[0].text);
-    return result.response.text();
+    try {
+      const result = await chat.sendMessage(lastMsg.parts[0].text);
+      return result.response.text();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      throw new Error(`Gemini API call failed: ${message}`);
+    }
   }
 
   getName(): string {

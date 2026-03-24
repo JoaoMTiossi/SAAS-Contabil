@@ -7,11 +7,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { obterCalendarioCliente, atualizarStatusObrigacao } from "@/lib/agents/agente-calendario-fiscal";
 import { format } from "date-fns";
 import { z } from "zod";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ clienteId: string }> }
 ) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const { clienteId } = await params;
   const competencia = req.nextUrl.searchParams.get("competencia") ?? format(new Date(), "yyyy-MM");
 
@@ -31,6 +35,9 @@ const AtualizarSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const body = await req.json();
     const data = AtualizarSchema.parse(body);

@@ -11,6 +11,7 @@ import {
   cancelarAlertasContrato,
   sincronizarAlertasContrato,
 } from "@/lib/scheduler";
+import { getSession } from "@/lib/auth/session";
 
 const PatchContratoSchema = z.object({
   status: z.enum(["ativo", "encerrado", "renovado", "cancelado"]).optional(),
@@ -22,6 +23,9 @@ const PatchContratoSchema = z.object({
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const { id } = await params;
 
   const contrato = await prisma.contrato.findUnique({
@@ -41,6 +45,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const { id } = await params;
 
   try {
@@ -73,6 +80,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const { id } = await params;
 
   try {

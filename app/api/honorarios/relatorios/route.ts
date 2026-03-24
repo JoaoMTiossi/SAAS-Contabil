@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { relatorioMensal, relatorioAging } from "@/lib/agents/agente-cobranca";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
   const escritorioId = req.nextUrl.searchParams.get("escritorioId");

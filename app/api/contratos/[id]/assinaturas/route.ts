@@ -9,11 +9,15 @@ import {
   statusAssinaturas,
 } from "@/lib/agents/agente-assinatura";
 import { z } from "zod";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const { id } = await params;
   try {
     const assinaturas = await statusAssinaturas(id);
@@ -38,6 +42,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const { id } = await params;
   try {
     const body = await req.json();

@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { registrarPagamento } from "@/lib/agents/agente-cobranca";
 import { z } from "zod";
+import { getSession } from "@/lib/auth/session";
 
 const PagamentoSchema = z.object({
   dataPagamento: z.string().transform((s) => new Date(s)).refine((d) => !isNaN(d.getTime()), { message: "Data de pagamento inválida" }),

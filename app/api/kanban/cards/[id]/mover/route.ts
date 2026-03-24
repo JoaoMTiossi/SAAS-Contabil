@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { moverCard } from "@/lib/agents/agente-rescisao";
 import { z } from "zod";
+import { getSession } from "@/lib/auth/session";
 
 const MoverSchema = z.object({
   colunaId: z.string(),

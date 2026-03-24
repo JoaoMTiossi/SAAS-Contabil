@@ -5,10 +5,13 @@ import { enviarNotificacao } from "@/lib/notificacoes/engine";
 
 export async function POST(req: NextRequest) {
   try {
-    // Optional: verify cron secret for security
+    // Verify cron secret for security
     const authHeader = req.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+      return NextResponse.json({ erro: "CRON_SECRET não configurada." }, { status: 500 });
+    }
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ erro: "Não autorizado." }, { status: 401 });
     }
 

@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { obterTimeline } from "@/lib/agents/agente-gestao-contratos";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET(
   _req: NextRequest,

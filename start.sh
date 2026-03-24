@@ -37,4 +37,4 @@ async function main() {
 main().catch(e => { console.error(e); });
 " || echo "Seed failed, continuing..."
 echo "Starting application..."
-node server.js
+node .next/standalone/server.js
