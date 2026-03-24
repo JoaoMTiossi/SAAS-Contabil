@@ -10,6 +10,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const { id } = await params;
   try {
     const eventos = await obterTimeline(id);

@@ -4,6 +4,9 @@ import { enviarEmail } from "@/lib/notificacoes/email";
 import { getSession } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const { escritorioId } = await req.json();
     if (!escritorioId) {

@@ -9,6 +9,9 @@ import { seedObrigacoesFiscais } from "@/lib/agents/agente-calendario-fiscal";
 import { getSession } from "@/lib/auth/session";
 
 export async function GET() {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const obrigacoes = await prisma.obrigacaoFiscal.findMany({
       where: { ativo: true },
@@ -22,6 +25,9 @@ export async function GET() {
 }
 
 export async function POST() {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const criadas = await seedObrigacoesFiscais();
     return NextResponse.json({ mensagem: `${criadas} obrigações fiscais criadas.`, criadas });

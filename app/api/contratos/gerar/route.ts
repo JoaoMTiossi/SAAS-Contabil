@@ -14,6 +14,9 @@ const GerarContratoSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const body = await req.json();
     const data = GerarContratoSchema.parse(body);

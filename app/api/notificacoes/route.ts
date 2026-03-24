@@ -9,6 +9,9 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const escritorioId = req.nextUrl.searchParams.get("escritorioId");
   const naoLidas = req.nextUrl.searchParams.get("naoLidas") === "true";
 
@@ -33,6 +36,9 @@ const MarcarLidaSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const body = await req.json();
     const data = MarcarLidaSchema.parse(body);

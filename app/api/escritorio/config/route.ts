@@ -9,6 +9,9 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   const escritorioId = req.nextUrl.searchParams.get("escritorioId");
   if (!escritorioId) {
     return NextResponse.json({ erro: "escritorioId é obrigatório." }, { status: 400 });
@@ -62,6 +65,9 @@ const ConfigSchema = z.object({
 });
 
 export async function PUT(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
   try {
     const body = await req.json();
     const data = ConfigSchema.parse(body);
