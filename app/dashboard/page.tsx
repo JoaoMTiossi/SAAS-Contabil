@@ -98,9 +98,14 @@ async function getDashboardData(escritorioId: string) {
 
 export default async function DashboardPage() {
   const session = await getSession();
-  if (!session) redirect("/login");
-
-  const escritorioId = session.user.escritorioId;
+  let escritorioId: string;
+  if (session) {
+    escritorioId = session.user.escritorioId;
+  } else {
+    const escritorio = await prisma.escritorio.findFirst();
+    if (!escritorio) redirect("/login");
+    escritorioId = escritorio.id;
+  }
   const {
     totalContratos,
     contratosAtivos,
