@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "@/lib/auth/types";
 import SessionProvider from "@/components/SessionProvider";
-import NavBar from "@/components/NavBar";
+import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "SAAS-Contabil — Gestão Contábil",
@@ -12,10 +12,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className="min-h-screen bg-gray-50 font-sans antialiased">
+      <body className="min-h-screen bg-slate-50 font-sans antialiased">
         <SessionProvider>
-          <NavBar />
-          <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
+          <AppShell>{children}</AppShell>
         </SessionProvider>
       </body>
     </html>

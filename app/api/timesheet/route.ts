@@ -22,7 +22,17 @@ export async function GET(req: NextRequest) {
 
   try {
     const lancamentos = await listarLancamentos(usuarioId, periodo);
-    return NextResponse.json({ lancamentos });
+    // Transform to match frontend interface
+    const data = lancamentos.map((l) => ({
+      id: l.id,
+      clienteId: l.clienteId,
+      clienteNome: l.cliente?.razaoSocial ?? "",
+      categoria: l.categoria,
+      descricao: l.descricao ?? "",
+      data: l.data.toISOString().split("T")[0],
+      duracaoMinutos: l.duracao,
+    }));
+    return NextResponse.json({ data });
   } catch (err) {
     console.error("[GET /api/timesheet]", err);
     return NextResponse.json({ erro: "Erro ao listar timesheet." }, { status: 500 });
@@ -37,7 +47,7 @@ const RegistrarSchema = z.object({
   data: z.string().transform((s) => new Date(s)).refine((d) => !isNaN(d.getTime()), { message: "Data inválida" }),
   horaInicio: z.string().transform((s) => new Date(s)).refine((d) => !isNaN(d.getTime()), { message: "Hora início inválida" }).optional(),
   horaFim: z.string().transform((s) => new Date(s)).refine((d) => !isNaN(d.getTime()), { message: "Hora fim inválida" }).optional(),
-  duracao: z.number().int().positive(),
+  duracaoMinutos: z.number().int().positive(),
 });
 
 export async function POST(req: NextRequest) {
@@ -47,7 +57,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const data = RegistrarSchema.parse(body);
-    const registro = await registrarHoras(data);
+    const registro = await registrarHoras({
+      ...data,
+      duracao: data.duracaoMinutos,
+    });
     return NextResponse.json(registro, { status: 201 });
   } catch (err) {
     if (err instanceof z.ZodError) {

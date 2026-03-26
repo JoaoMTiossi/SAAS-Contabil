@@ -21,7 +21,7 @@ const categoriaCores: Record<string, { bar: string; label: string }> = {
   contabil: { bar: "bg-purple-500", label: "bg-purple-100 text-purple-700" },
   dp: { bar: "bg-green-500", label: "bg-green-100 text-green-700" },
   consultoria: { bar: "bg-orange-500", label: "bg-orange-100 text-orange-700" },
-  administrativo: { bar: "bg-gray-400", label: "bg-gray-100 text-gray-700" },
+  administrativo: { bar: "bg-slate-400", label: "bg-slate-100 text-slate-700" },
 };
 
 function formatHoras(minutos: number): string {
@@ -66,26 +66,25 @@ export default function ProdutividadePage() {
   }, [fetchData]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">Produtividade</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Produtividade</h1>
           <div>
             <input
               type="month"
               value={mes}
               onChange={(e) => setMes(e.target.value)}
-              className="rounded border border-gray-200 px-3 py-1.5 text-sm"
+              className="rounded border border-slate-200 px-3 py-1.5 text-sm"
             />
           </div>
         </div>
 
         {/* Content */}
         {loading ? (
-          <p className="py-12 text-center text-gray-400">Carregando...</p>
+          <p className="py-12 text-center text-slate-400">Carregando...</p>
         ) : colaboradores.length === 0 ? (
-          <p className="py-12 text-center text-gray-400">
+          <p className="py-12 text-center text-slate-400">
             Nenhum dado de produtividade encontrado para este per&iacute;odo.
           </p>
         ) : (
@@ -103,27 +102,27 @@ export default function ProdutividadePage() {
               return (
                 <div
                   key={c.usuarioId}
-                  className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+                  className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
                 >
                   {/* Nome */}
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-slate-900">
                     {c.nome}
                   </h3>
 
                   {/* Horas realizadas / meta */}
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-slate-500">
                     {formatHoras(c.horasRealizadas * 60)} / {formatHoras(c.meta * 60)}
                   </p>
 
                   {/* Progress bar */}
                   <div className="mt-3">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">Progresso</span>
-                      <span className="font-medium text-gray-700">
+                      <span className="text-slate-500">Progresso</span>
+                      <span className="font-medium text-slate-700">
                         {pctReal}%
                       </span>
                     </div>
-                    <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                    <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
                       <div
                         className={`h-full rounded-full transition-all ${getProgressColor(pctReal)}`}
                         style={{ width: `${pct}%` }}
@@ -134,7 +133,7 @@ export default function ProdutividadePage() {
                   {/* Breakdown by category */}
                   {c.categorias && c.categorias.length > 0 && (
                     <div className="mt-4 space-y-2">
-                      <p className="text-xs font-medium text-gray-500">
+                      <p className="text-xs font-medium text-slate-500">
                         Por categoria
                       </p>
                       {c.categorias.map((cat) => {
@@ -155,13 +154,13 @@ export default function ProdutividadePage() {
                               {cat.categoria.charAt(0).toUpperCase() +
                                 cat.categoria.slice(1)}
                             </span>
-                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
+                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                               <div
                                 className={`h-full rounded-full ${cores.bar}`}
                                 style={{ width: `${catPct}%` }}
                               />
                             </div>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-slate-400">
                               {formatHoras(cat.minutos)}
                             </span>
                           </div>
@@ -174,7 +173,6 @@ export default function ProdutividadePage() {
             })}
           </div>
         )}
-      </div>
     </div>
   );
 }

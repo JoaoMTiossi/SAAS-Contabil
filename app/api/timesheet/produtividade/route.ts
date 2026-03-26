@@ -19,7 +19,18 @@ export async function GET(req: NextRequest) {
 
   try {
     const produtividade = await dashboardProdutividade(escritorioId, mes);
-    return NextResponse.json({ produtividade });
+    // Transform to match frontend interface
+    const data = produtividade.map((p) => ({
+      usuarioId: p.usuarioId,
+      nome: p.nome,
+      horasRealizadas: p.horasRealizadas,
+      meta: p.metaHoras,
+      categorias: Object.entries(p.horasPorCategoria).map(([categoria, horas]) => ({
+        categoria,
+        minutos: Math.round(horas * 60),
+      })),
+    }));
+    return NextResponse.json({ data });
   } catch (err) {
     console.error("[GET /api/timesheet/produtividade]", err);
     return NextResponse.json({ erro: "Erro ao calcular produtividade." }, { status: 500 });

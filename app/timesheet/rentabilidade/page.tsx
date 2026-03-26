@@ -57,11 +57,10 @@ export default function RentabilidadePage() {
   }, [fetchData]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-slate-900">
             Rentabilidade por Cliente
           </h1>
           <div>
@@ -69,30 +68,30 @@ export default function RentabilidadePage() {
               type="month"
               value={mes}
               onChange={(e) => setMes(e.target.value)}
-              className="rounded border border-gray-200 px-3 py-1.5 text-sm"
+              className="rounded border border-slate-200 px-3 py-1.5 text-sm"
             />
           </div>
         </div>
 
         {/* Table */}
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b bg-gray-50">
+              <thead className="border-b bg-slate-50">
                 <tr>
-                  <th className="px-5 py-3 font-medium text-gray-600">
+                  <th className="px-5 py-3 font-medium text-slate-600">
                     Cliente
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-600">
+                  <th className="px-5 py-3 font-medium text-slate-600">
                     Horas Gastas
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-600">
+                  <th className="px-5 py-3 font-medium text-slate-600">
                     Honor&aacute;rio Mensal
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-600">
+                  <th className="px-5 py-3 font-medium text-slate-600">
                     R$/Hora
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-600">
+                  <th className="px-5 py-3 font-medium text-slate-600">
                     Rent&aacute;vel?
                   </th>
                 </tr>
@@ -102,7 +101,7 @@ export default function RentabilidadePage() {
                   <tr>
                     <td
                       colSpan={5}
-                      className="px-5 py-8 text-center text-gray-400"
+                      className="px-5 py-8 text-center text-slate-400"
                     >
                       Carregando...
                     </td>
@@ -111,7 +110,7 @@ export default function RentabilidadePage() {
                   <tr>
                     <td
                       colSpan={5}
-                      className="px-5 py-8 text-center text-gray-400"
+                      className="px-5 py-8 text-center text-slate-400"
                     >
                       Nenhum dado de rentabilidade encontrado para este
                       per&iacute;odo.
@@ -119,17 +118,17 @@ export default function RentabilidadePage() {
                   </tr>
                 ) : (
                   dados.map((d) => (
-                    <tr key={d.clienteId} className="hover:bg-gray-50">
-                      <td className="px-5 py-3 font-medium text-gray-900">
+                    <tr key={d.clienteId} className="hover:bg-slate-50">
+                      <td className="px-5 py-3 font-medium text-slate-900">
                         {d.clienteNome}
                       </td>
-                      <td className="px-5 py-3 text-gray-700">
+                      <td className="px-5 py-3 text-slate-700">
                         {formatHoras(d.horasGastas)}
                       </td>
-                      <td className="px-5 py-3 text-gray-700">
+                      <td className="px-5 py-3 text-slate-700">
                         {formatCurrency(d.honorarioMensal)}
                       </td>
-                      <td className="px-5 py-3 text-gray-700">
+                      <td className="px-5 py-3 text-slate-700">
                         {formatCurrency(d.valorHora)}
                       </td>
                       <td className="px-5 py-3">
@@ -174,7 +173,6 @@ export default function RentabilidadePage() {
             </table>
           </div>
         </div>
-      </div>
     </div>
   );
 }

@@ -19,7 +19,16 @@ export async function GET(req: NextRequest) {
 
   try {
     const rentabilidade = await relatorioRentabilidade(escritorioId, mes);
-    return NextResponse.json({ rentabilidade });
+    // Transform to match frontend interface
+    const data = rentabilidade.map((r) => ({
+      clienteId: r.clienteId,
+      clienteNome: r.razaoSocial,
+      horasGastas: r.horasGastas,
+      honorarioMensal: r.honorarioMensal,
+      valorHora: r.custoPorHora,
+      rentavel: r.rentavel,
+    }));
+    return NextResponse.json({ data });
   } catch (err) {
     console.error("[GET /api/timesheet/rentabilidade]", err);
     return NextResponse.json({ erro: "Erro ao calcular rentabilidade." }, { status: 500 });

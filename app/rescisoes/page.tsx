@@ -35,10 +35,21 @@ interface KanbanBoard {
   colunas: KanbanColuna[];
 }
 
+interface ContratoOption {
+  id: string;
+  identificador: string | null;
+  contratante: string | null;
+  clienteId: string | null;
+}
+
+interface ClienteOption {
+  id: string;
+  razaoSocial: string;
+}
+
 // ─── Helpers ────────────────────────────────────────────────────
 
 function formatDate(iso: string): string {
-  // Append T12:00:00 for date-only strings to avoid timezone shift
   const normalized = iso.length === 10 ? `${iso}T12:00:00` : iso;
   const d = new Date(normalized);
   const dd = String(d.getDate()).padStart(2, "0");
@@ -54,6 +65,10 @@ export default function RescisoesPage() {
   const [board, setBoard] = useState<KanbanBoard | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
+  // Dropdowns data
+  const [contratos, setContratos] = useState<ContratoOption[]>([]);
+  const [clientes, setClientes] = useState<ClienteOption[]>([]);
 
   // Card detail modal
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null);
@@ -80,9 +95,31 @@ export default function RescisoesPage() {
     }
   }, [escritorioId]);
 
+  // ── Fetch Contratos & Clientes for dropdowns ──────────────
+
+  const fetchOptions = useCallback(async () => {
+    try {
+      const [contratosRes, clientesRes] = await Promise.all([
+        fetch(`/api/contratos?escritorioId=${escritorioId}&limit=200`),
+        fetch(`/api/clientes?escritorioId=${escritorioId}&limit=200`),
+      ]);
+      if (contratosRes.ok) {
+        const data = await contratosRes.json();
+        setContratos(data.contratos ?? data.data ?? data ?? []);
+      }
+      if (clientesRes.ok) {
+        const data = await clientesRes.json();
+        setClientes(data.clientes ?? data.data ?? data ?? []);
+      }
+    } catch {
+      // ignore - user can still type IDs
+    }
+  }, [escritorioId]);
+
   useEffect(() => {
     fetchBoard();
-  }, [fetchBoard]);
+    fetchOptions();
+  }, [fetchBoard, fetchOptions]);
 
   // ── Create Card ─────────────────────────────────────────────
 
@@ -112,6 +149,15 @@ export default function RescisoesPage() {
     }
   }
 
+  // Auto-fill clienteId when contrato is selected
+  function handleContratoChange(contratoId: string) {
+    setFormData((f) => ({ ...f, contratoId }));
+    const contrato = contratos.find((c) => c.id === contratoId);
+    if (contrato?.clienteId) {
+      setFormData((f) => ({ ...f, contratoId, clienteId: contrato.clienteId! }));
+    }
+  }
+
   // ── Move Card ───────────────────────────────────────────────
 
   async function handleMoveCard(cardId: string, novaColunaId: string) {
@@ -124,7 +170,6 @@ export default function RescisoesPage() {
       if (!res.ok) throw new Error("Erro ao mover card");
       const updatedBoard = await fetch(`/api/kanban?escritorioId=${escritorioId}`).then((r) => r.json()) as KanbanBoard;
       setBoard(updatedBoard);
-      // Update modal state with fresh data from the board
       if (selectedCard?.id === cardId) {
         setSelectedCardColunaId(novaColunaId);
         const updatedCard = updatedBoard.colunas
@@ -149,7 +194,6 @@ export default function RescisoesPage() {
       if (!res.ok) throw new Error("Erro ao atualizar checklist");
       const updatedBoard = await fetch(`/api/kanban?escritorioId=${escritorioId}`).then((r) => r.json()) as KanbanBoard;
       setBoard(updatedBoard);
-      // Update selected card with fresh data from the board
       if (selectedCard) {
         const updatedCard = updatedBoard.colunas
           .flatMap((col) => col.cards)
@@ -160,8 +204,6 @@ export default function RescisoesPage() {
       alert("Erro ao atualizar checklist.");
     }
   }
-
-  // ── Open Card Detail ────────────────────────────────────────
 
   function openCardDetail(card: KanbanCard, colunaId: string) {
     setSelectedCard(card);
@@ -178,7 +220,7 @@ export default function RescisoesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-sm text-gray-500">Carregando quadro de rescisões...</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
       </div>
     );
   }
@@ -201,52 +243,95 @@ export default function RescisoesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Fluxo de Rescisão</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Fluxo de Rescisão</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/25 hover:bg-blue-700"
         >
-          {showForm ? "Cancelar" : "Nova Rescisão"}
+          {showForm ? (
+            "Cancelar"
+          ) : (
+            <>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Nova Rescisão
+            </>
+          )}
         </button>
       </div>
 
       {/* Nova Rescisão Form */}
       {showForm && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-800">Nova Rescisão</h2>
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Nova Rescisão</h2>
           <form onSubmit={handleCreateCard} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="contratoId" className="mb-1 block text-sm font-medium text-gray-700">
-                  ID do Contrato
+                <label htmlFor="contratoId" className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Contrato
                 </label>
-                <input
-                  id="contratoId"
-                  type="text"
-                  required
-                  value={formData.contratoId}
-                  onChange={(e) => setFormData((f) => ({ ...f, contratoId: e.target.value }))}
-                  placeholder="ID do contrato"
-                  className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
-                />
+                {contratos.length > 0 ? (
+                  <select
+                    id="contratoId"
+                    required
+                    value={formData.contratoId}
+                    onChange={(e) => handleContratoChange(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="">Selecione um contrato</option>
+                    {contratos.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.identificador || c.contratante || c.id.slice(0, 8)}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id="contratoId"
+                    type="text"
+                    required
+                    value={formData.contratoId}
+                    onChange={(e) => setFormData((f) => ({ ...f, contratoId: e.target.value }))}
+                    placeholder="ID do contrato"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                )}
               </div>
               <div>
-                <label htmlFor="clienteId" className="mb-1 block text-sm font-medium text-gray-700">
-                  ID do Cliente
+                <label htmlFor="clienteId" className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Cliente
                 </label>
-                <input
-                  id="clienteId"
-                  type="text"
-                  required
-                  value={formData.clienteId}
-                  onChange={(e) => setFormData((f) => ({ ...f, clienteId: e.target.value }))}
-                  placeholder="ID do cliente"
-                  className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
-                />
+                {clientes.length > 0 ? (
+                  <select
+                    id="clienteId"
+                    required
+                    value={formData.clienteId}
+                    onChange={(e) => setFormData((f) => ({ ...f, clienteId: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="">Selecione um cliente</option>
+                    {clientes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.razaoSocial}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id="clienteId"
+                    type="text"
+                    required
+                    value={formData.clienteId}
+                    onChange={(e) => setFormData((f) => ({ ...f, clienteId: e.target.value }))}
+                    placeholder="ID do cliente"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                )}
               </div>
             </div>
             <div>
-              <label htmlFor="motivo" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="motivo" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Motivo
               </label>
               <textarea
@@ -255,14 +340,14 @@ export default function RescisoesPage() {
                 value={formData.motivo}
                 onChange={(e) => setFormData((f) => ({ ...f, motivo: e.target.value }))}
                 placeholder="Motivo da rescisão (opcional)"
-                className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
             <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/25 hover:bg-blue-700 disabled:opacity-50"
               >
                 {submitting ? "Criando..." : "Criar Rescisão"}
               </button>
@@ -277,16 +362,16 @@ export default function RescisoesPage() {
           {board.colunas.map((coluna) => (
             <div
               key={coluna.id}
-              className="flex min-w-[280px] flex-col rounded-xl border border-gray-200 bg-white shadow-sm"
+              className="flex min-w-[300px] flex-col rounded-xl border border-slate-200 bg-slate-50/50 shadow-sm"
             >
               {/* Column Header */}
               <div
-                className="rounded-t-xl border-b border-gray-200 px-4 py-3"
-                style={{ borderTopWidth: "3px", borderTopColor: coluna.cor || "#9CA3AF" }}
+                className="rounded-t-xl border-b border-slate-200 px-4 py-3"
+                style={{ borderTopWidth: "3px", borderTopColor: coluna.cor || "#94A3B8" }}
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-800">{coluna.nome}</h3>
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                  <h3 className="text-sm font-semibold text-slate-800">{coluna.nome}</h3>
+                  <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-slate-600 shadow-sm">
                     {coluna.cards.length}
                   </span>
                 </div>
@@ -295,7 +380,7 @@ export default function RescisoesPage() {
               {/* Cards */}
               <div className="flex-1 space-y-2 p-3">
                 {coluna.cards.length === 0 && (
-                  <p className="py-4 text-center text-xs text-gray-400">Nenhum card</p>
+                  <p className="py-6 text-center text-xs text-slate-400">Nenhum card</p>
                 )}
                 {coluna.cards.map((card) => {
                   const checkDone = card.checklists.filter((c) => c.feito).length;
@@ -306,24 +391,24 @@ export default function RescisoesPage() {
                       key={card.id}
                       type="button"
                       onClick={() => openCardDetail(card, coluna.id)}
-                      className="w-full rounded-lg border border-gray-200 bg-white p-3 text-left shadow-sm transition hover:border-blue-300 hover:shadow"
+                      className="w-full rounded-lg border border-slate-200 bg-white p-3.5 text-left shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
                     >
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-slate-900">
                         {card.cliente?.razaoSocial || "Cliente não identificado"}
                       </p>
                       {card.contrato?.identificador && (
-                        <p className="mt-0.5 text-xs text-gray-500">
+                        <p className="mt-0.5 text-xs text-slate-500">
                           {card.contrato.identificador}
                         </p>
                       )}
                       {card.motivo && (
-                        <p className="mt-1 text-xs text-gray-500 line-clamp-2">{card.motivo}</p>
+                        <p className="mt-1.5 text-xs text-slate-500 line-clamp-2">{card.motivo}</p>
                       )}
-                      <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
+                      <div className="mt-2.5 flex items-center justify-between text-xs text-slate-400">
                         <span>{formatDate(card.createdAt)}</span>
                         {checkTotal > 0 && (
-                          <span>
-                            {checkDone}/{checkTotal} itens completos
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium">
+                            {checkDone}/{checkTotal}
                           </span>
                         )}
                       </div>
@@ -339,53 +424,53 @@ export default function RescisoesPage() {
       {/* Card Detail Modal */}
       {selectedCard && board && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) closeCardDetail();
           }}
         >
-          <div className="mx-4 w-full max-w-lg rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="mx-4 w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl">
             {/* Modal Header */}
-            <div className="mb-4 flex items-start justify-between">
+            <div className="mb-5 flex items-start justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-slate-900">
                   {selectedCard.cliente?.razaoSocial || "Cliente não identificado"}
                 </h2>
                 {selectedCard.contrato?.identificador && (
-                  <p className="text-sm text-gray-500">{selectedCard.contrato.identificador}</p>
+                  <p className="text-sm text-slate-500">{selectedCard.contrato.identificador}</p>
                 )}
               </div>
               <button
                 onClick={closeCardDetail}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             {/* Info */}
-            <div className="mb-4 space-y-1 text-sm text-gray-600">
+            <div className="mb-5 space-y-2 text-sm text-slate-600">
               {selectedCard.motivo && (
-                <p><span className="font-medium text-gray-700">Motivo:</span> {selectedCard.motivo}</p>
+                <p><span className="font-medium text-slate-700">Motivo:</span> {selectedCard.motivo}</p>
               )}
-              <p><span className="font-medium text-gray-700">Data de solicitação:</span> {formatDate(selectedCard.createdAt)}</p>
+              <p><span className="font-medium text-slate-700">Data de solicitação:</span> {formatDate(selectedCard.createdAt)}</p>
               {selectedCard.dataPrevisao && (
-                <p><span className="font-medium text-gray-700">Previsão:</span> {formatDate(selectedCard.dataPrevisao)}</p>
+                <p><span className="font-medium text-slate-700">Previsão:</span> {formatDate(selectedCard.dataPrevisao)}</p>
               )}
             </div>
 
             {/* Move to Column */}
-            <div className="mb-4">
-              <label htmlFor="moverColuna" className="mb-1 block text-sm font-medium text-gray-700">
+            <div className="mb-5">
+              <label htmlFor="moverColuna" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Mover para coluna
               </label>
               <select
                 id="moverColuna"
                 value={selectedCardColunaId}
                 onChange={(e) => handleMoveCard(selectedCard.id, e.target.value)}
-                className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               >
                 {board.colunas.map((col) => (
                   <option key={col.id} value={col.id}>
@@ -398,22 +483,22 @@ export default function RescisoesPage() {
             {/* Checklist */}
             {selectedCard.checklists.length > 0 && (
               <div>
-                <h3 className="mb-2 text-sm font-medium text-gray-700">
+                <h3 className="mb-2 text-sm font-medium text-slate-700">
                   Checklist ({selectedCard.checklists.filter((c) => c.feito).length}/{selectedCard.checklists.length})
                 </h3>
                 <div className="space-y-1">
                   {selectedCard.checklists.map((item) => (
                     <label
                       key={item.id}
-                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-gray-50"
+                      className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm hover:bg-slate-50"
                     >
                       <input
                         type="checkbox"
                         checked={item.feito}
                         onChange={() => handleToggleChecklist(item.id, !item.feito)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600"
                       />
-                      <span className={item.feito ? "text-gray-400 line-through" : "text-gray-700"}>
+                      <span className={item.feito ? "text-slate-400 line-through" : "text-slate-700"}>
                         {item.descricao}
                       </span>
                     </label>

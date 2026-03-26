@@ -18,7 +18,7 @@ const categoriaBadge: Record<string, string> = {
   contabil: "bg-purple-100 text-purple-700",
   dp: "bg-green-100 text-green-700",
   consultoria: "bg-orange-100 text-orange-700",
-  administrativo: "bg-gray-100 text-gray-700",
+  administrativo: "bg-slate-100 text-slate-700",
 };
 
 function formatDuracao(minutos: number): string {
@@ -104,21 +104,20 @@ export default function TimesheetPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">Timesheet</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Timesheet</h1>
 
           <div className="flex items-center gap-3">
             {/* Toggle Semana / Mês */}
-            <div className="inline-flex overflow-hidden rounded-lg border border-gray-200">
+            <div className="inline-flex overflow-hidden rounded-lg border border-slate-200">
               <button
                 onClick={() => setPeriodo("semana")}
                 className={`px-4 py-2 text-sm font-medium transition-colors ${
                   periodo === "semana"
                     ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-600 hover:bg-gray-50"
+                    : "bg-white text-slate-600 hover:bg-slate-50"
                 }`}
               >
                 Semana
@@ -128,7 +127,7 @@ export default function TimesheetPage() {
                 className={`px-4 py-2 text-sm font-medium transition-colors ${
                   periodo === "mes"
                     ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-600 hover:bg-gray-50"
+                    : "bg-white text-slate-600 hover:bg-slate-50"
                 }`}
               >
                 M&ecirc;s
@@ -145,26 +144,26 @@ export default function TimesheetPage() {
         </div>
 
         {/* Summary */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">
             Total horas {periodo === "semana" ? "da semana" : "do m\u00eas"}
           </p>
-          <p className="mt-1 text-3xl font-bold text-gray-900">
+          <p className="mt-1 text-3xl font-bold text-slate-900">
             {formatDuracao(totalMinutos)}
           </p>
         </div>
 
         {/* Inline Form */}
         {showForm && (
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">
               Registrar Horas
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Cliente */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
                     Cliente
                   </label>
                   <input
@@ -173,19 +172,19 @@ export default function TimesheetPage() {
                     onChange={(e) => setClienteId(e.target.value)}
                     placeholder="ID do cliente"
                     required
-                    className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
+                    className="w-full rounded border border-slate-200 px-3 py-1.5 text-sm"
                   />
                 </div>
 
                 {/* Categoria */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
                     Categoria
                   </label>
                   <select
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
-                    className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
+                    className="w-full rounded border border-slate-200 px-3 py-1.5 text-sm"
                   >
                     <option value="fiscal">Fiscal</option>
                     <option value="contabil">Cont&aacute;bil</option>
@@ -197,7 +196,7 @@ export default function TimesheetPage() {
 
                 {/* Data */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
                     Data
                   </label>
                   <input
@@ -205,13 +204,13 @@ export default function TimesheetPage() {
                     value={data}
                     onChange={(e) => setData(e.target.value)}
                     required
-                    className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
+                    className="w-full rounded border border-slate-200 px-3 py-1.5 text-sm"
                   />
                 </div>
 
                 {/* Duração */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
                     Dura&ccedil;&atilde;o (minutos)
                   </label>
                   <input
@@ -222,16 +221,16 @@ export default function TimesheetPage() {
                       setDuracaoMinutos(parseInt(e.target.value) || 0)
                     }
                     required
-                    className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
+                    className="w-full rounded border border-slate-200 px-3 py-1.5 text-sm"
                   />
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-xs text-slate-400">
                     {formatDuracao(duracaoMinutos)}
                   </p>
                 </div>
 
                 {/* Descrição */}
                 <div className="sm:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
                     Descri&ccedil;&atilde;o
                   </label>
                   <input
@@ -240,7 +239,7 @@ export default function TimesheetPage() {
                     onChange={(e) => setDescricao(e.target.value)}
                     placeholder="Descreva a atividade realizada"
                     required
-                    className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm"
+                    className="w-full rounded border border-slate-200 px-3 py-1.5 text-sm"
                   />
                 </div>
               </div>
@@ -259,22 +258,22 @@ export default function TimesheetPage() {
         )}
 
         {/* Table */}
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b bg-gray-50">
+              <thead className="border-b bg-slate-50">
                 <tr>
-                  <th className="px-5 py-3 font-medium text-gray-600">Data</th>
-                  <th className="px-5 py-3 font-medium text-gray-600">
+                  <th className="px-5 py-3 font-medium text-slate-600">Data</th>
+                  <th className="px-5 py-3 font-medium text-slate-600">
                     Cliente
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-600">
+                  <th className="px-5 py-3 font-medium text-slate-600">
                     Categoria
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-600">
+                  <th className="px-5 py-3 font-medium text-slate-600">
                     Descri&ccedil;&atilde;o
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-600">
+                  <th className="px-5 py-3 font-medium text-slate-600">
                     Dura&ccedil;&atilde;o
                   </th>
                 </tr>
@@ -284,7 +283,7 @@ export default function TimesheetPage() {
                   <tr>
                     <td
                       colSpan={5}
-                      className="px-5 py-8 text-center text-gray-400"
+                      className="px-5 py-8 text-center text-slate-400"
                     >
                       Carregando...
                     </td>
@@ -293,18 +292,18 @@ export default function TimesheetPage() {
                   <tr>
                     <td
                       colSpan={5}
-                      className="px-5 py-8 text-center text-gray-400"
+                      className="px-5 py-8 text-center text-slate-400"
                     >
                       Nenhum registro encontrado.
                     </td>
                   </tr>
                 ) : (
                   registros.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50">
-                      <td className="whitespace-nowrap px-5 py-3 text-gray-700">
+                    <tr key={r.id} className="hover:bg-slate-50">
+                      <td className="whitespace-nowrap px-5 py-3 text-slate-700">
                         {formatData(r.data)}
                       </td>
-                      <td className="px-5 py-3 text-gray-700">
+                      <td className="px-5 py-3 text-slate-700">
                         {r.clienteNome ?? r.clienteId}
                       </td>
                       <td className="px-5 py-3">
@@ -317,8 +316,8 @@ export default function TimesheetPage() {
                             r.categoria.slice(1)}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-gray-700">{r.descricao}</td>
-                      <td className="whitespace-nowrap px-5 py-3 text-gray-700">
+                      <td className="px-5 py-3 text-slate-700">{r.descricao}</td>
+                      <td className="whitespace-nowrap px-5 py-3 text-slate-700">
                         {formatDuracao(r.duracaoMinutos)}
                       </td>
                     </tr>
@@ -328,7 +327,6 @@ export default function TimesheetPage() {
             </table>
           </div>
         </div>
-      </div>
     </div>
   );
 }
