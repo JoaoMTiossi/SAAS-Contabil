@@ -46,22 +46,13 @@ export default function UserMenu() {
           </div>
           <div className="py-1">
             {session.user.role === "admin" && (
-              <>
-                <Link
-                  href="/admin/empresas"
-                  onClick={() => setAberto(false)}
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  Gerenciar Empresas
-                </Link>
-                <Link
-                  href="/admin/usuarios"
-                  onClick={() => setAberto(false)}
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  Gerenciar Usuários
-                </Link>
-              </>
+              <Link
+                href="/admin"
+                onClick={() => setAberto(false)}
+                className="block px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
+              >
+                Painel Admin
+              </Link>
             )}
             <Link
               href="/configuracoes"

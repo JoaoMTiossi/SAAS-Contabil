@@ -8,6 +8,8 @@ const AtualizarSchema = z.object({
   cnpj: z.string().optional(),
   email: z.string().email().optional(),
   modulos: z.array(z.string()).optional(),
+  status: z.enum(["ativo", "suspenso", "bloqueado"]).optional(),
+  planoId: z.string().nullable().optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -23,6 +25,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         ...(data.nome && { nome: data.nome }),
         ...(data.cnpj !== undefined && { cnpj: data.cnpj || null }),
         ...(data.email && { email: data.email }),
+        ...(data.status !== undefined && { status: data.status }),
+        ...(data.planoId !== undefined && { planoId: data.planoId }),
       },
     });
 
@@ -38,6 +42,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       include: {
         _count: { select: { usuarios: true, clientes: true } },
         modulos: true,
+        plano: { select: { id: true, nome: true } },
       },
     });
 

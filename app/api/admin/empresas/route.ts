@@ -15,6 +15,7 @@ export async function GET() {
       include: {
         _count: { select: { usuarios: true, clientes: true } },
         modulos: true,
+        plano: { select: { id: true, nome: true } },
       },
       orderBy: { createdAt: "desc" },
     });
