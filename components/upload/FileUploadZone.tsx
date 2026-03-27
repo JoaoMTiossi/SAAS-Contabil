@@ -47,6 +47,8 @@ export function FileUploadZone({ onTextoPuro, onExtraido, carregando, setCarrega
     [processar]
   );
 
+  const [textoColar, setTextoColar] = useState("");
+
   return (
     <div className="space-y-4">
       <div
@@ -94,22 +96,28 @@ export function FileUploadZone({ onTextoPuro, onExtraido, carregando, setCarrega
         <summary className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900">
           Ou cole o texto do contrato
         </summary>
-        <div className="p-4">
+        <div className="p-4 space-y-3">
           <textarea
             rows={8}
+            value={textoColar}
+            onChange={(e) => setTextoColar(e.target.value)}
             placeholder="Cole aqui o texto do contrato..."
             className="w-full rounded border border-gray-200 p-3 text-sm focus:border-blue-400 focus:outline-none"
-            onBlur={(e) => {
-              if (e.target.value.trim()) {
-                const blob = new Blob([e.target.value], { type: "text/plain" });
+          />
+          <button
+            type="button"
+            disabled={carregando || !textoColar.trim()}
+            onClick={() => {
+              if (textoColar.trim()) {
+                const blob = new Blob([textoColar], { type: "text/plain" });
                 const file = new File([blob], "contrato.txt", { type: "text/plain" });
                 processar(file);
               }
             }}
-          />
-          <p className="mt-1 text-xs text-gray-400">
-            A extração ocorre ao clicar fora do campo de texto.
-          </p>
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            Extrair Prazos
+          </button>
         </div>
       </details>
 

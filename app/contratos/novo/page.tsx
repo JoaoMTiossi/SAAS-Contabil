@@ -22,6 +22,14 @@ export default function NovoContratoPage() {
 
   async function confirmarESalvar() {
     if (!extraido) return;
+
+    // Validação client-side: obrigações sem descrição
+    const obrigacoesInvalidas = extraido.obrigacoes.filter((o) => !o.descricao.trim());
+    if (obrigacoesInvalidas.length > 0) {
+      setErro("Preencha a descrição de todas as obrigações antes de salvar.");
+      return;
+    }
+
     setEtapa("confirmando");
     setErro(null);
 

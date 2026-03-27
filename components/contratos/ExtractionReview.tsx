@@ -2,7 +2,7 @@
 
 import { ContratoExtraido, NivelConfianca, ParcelaExtraida, ObrigacaoExtraida } from "@/types/contrato";
 import { ConfiancaBadge } from "./ConfiancaBadge";
-import { useState } from "react";
+import { DateInput } from "@/components/ui/DateInput";
 
 interface Props {
   dados: ContratoExtraido;
@@ -36,6 +36,43 @@ function InputField({
             : "border-gray-200 focus:ring-blue-400"
           }`}
       />
+    </div>
+  );
+}
+
+function ValorInput({
+  label,
+  value,
+  onChange,
+  alerta,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (v: string | null) => void;
+  alerta?: boolean;
+}) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/[^\d,]/g, "");
+    onChange(raw ? `R$ ${raw}` : null);
+  }
+
+  const displayValue = value ? value.replace(/^R\$\s*/, "") : "";
+
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-gray-600">{label}</label>
+      <div className="flex items-center rounded border focus-within:ring-1 focus-within:ring-blue-400
+        ${alerta ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}">
+        <span className="pl-3 text-sm text-gray-500">R$</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={displayValue}
+          onChange={handleChange}
+          placeholder="0,00"
+          className="w-full rounded-r border-0 bg-transparent px-2 py-1.5 text-sm focus:outline-none"
+        />
+      </div>
     </div>
   );
 }
@@ -137,25 +174,22 @@ export function ExtractionReview({ dados, onChange }: Props) {
           <ConfiancaBadge nivel={conf.vencimento_geral} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <InputField
+          <DateInput
             label="Data de Início"
             value={dados.vencimento_geral.data_inicio}
-            onChange={(v) => updateVencimento("data_inicio", v || null)}
-            placeholder="DD/MM/AAAA"
+            onChange={(v) => updateVencimento("data_inicio", v)}
             alerta={needsReview(conf.vencimento_geral)}
           />
-          <InputField
+          <DateInput
             label="Data de Término"
             value={dados.vencimento_geral.data_fim}
-            onChange={(v) => updateVencimento("data_fim", v || null)}
-            placeholder="DD/MM/AAAA"
+            onChange={(v) => updateVencimento("data_fim", v)}
             alerta={needsReview(conf.vencimento_geral)}
           />
-          <InputField
+          <DateInput
             label="Prazo Limite para Aviso de Não Renovação"
             value={dados.vencimento_geral.prazo_aviso_cancelamento}
-            onChange={(v) => updateVencimento("prazo_aviso_cancelamento", v || null)}
-            placeholder="DD/MM/AAAA"
+            onChange={(v) => updateVencimento("prazo_aviso_cancelamento", v)}
             alerta={needsReview(conf.vencimento_geral)}
           />
           <div>
@@ -221,20 +255,18 @@ export function ExtractionReview({ dados, onChange }: Props) {
                 onChange={(v) => updateParcela(idx, "descricao", v || null)}
                 alerta={needsReview(conf.parcelas)}
               />
-              <InputField
+              <ValorInput
                 label="Valor"
                 value={p.valor}
-                onChange={(v) => updateParcela(idx, "valor", v || null)}
-                placeholder="R$ 0,00"
+                onChange={(v) => updateParcela(idx, "valor", v)}
                 alerta={needsReview(conf.parcelas)}
               />
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <InputField
+                  <DateInput
                     label="Vencimento"
                     value={p.vencimento}
-                    onChange={(v) => updateParcela(idx, "vencimento", v || null)}
-                    placeholder="DD/MM/AAAA"
+                    onChange={(v) => updateParcela(idx, "vencimento", v)}
                     alerta={!p.vencimento}
                   />
                 </div>
@@ -274,13 +306,19 @@ export function ExtractionReview({ dados, onChange }: Props) {
           {dados.obrigacoes.map((o, idx) => (
             <div key={idx} className="grid gap-2 rounded border border-gray-100 bg-gray-50 p-3 sm:grid-cols-4">
               <div className="sm:col-span-2">
-                <label className="mb-1 block text-xs text-gray-500">Descrição</label>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Descrição <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   rows={2}
                   value={o.descricao}
                   onChange={(e) => updateObrigacao(idx, "descricao", e.target.value)}
-                  className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className={`w-full rounded border bg-white px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400
+                    ${!o.descricao.trim() ? "border-red-200" : "border-gray-200"}`}
                 />
+                {!o.descricao.trim() && (
+                  <p className="mt-0.5 text-xs text-red-600">Descrição obrigatória</p>
+                )}
               </div>
               <div>
                 <label className="mb-1 block text-xs text-gray-500">Responsável</label>
@@ -298,11 +336,10 @@ export function ExtractionReview({ dados, onChange }: Props) {
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <InputField
+                  <DateInput
                     label="Prazo"
                     value={o.prazo}
-                    onChange={(v) => updateObrigacao(idx, "prazo", v || null)}
-                    placeholder="DD/MM/AAAA"
+                    onChange={(v) => updateObrigacao(idx, "prazo", v)}
                     alerta={!o.prazo}
                   />
                 </div>

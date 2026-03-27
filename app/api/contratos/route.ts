@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sincronizarAlertasContrato } from "@/lib/scheduler";
-import { parseISO } from "date-fns";
 
 // ─── Schema de validação ───────────────────────────────────────────
 
@@ -19,7 +18,7 @@ const ParcelaSchema = z.object({
 });
 
 const ObrigacaoSchema = z.object({
-  descricao: z.string().min(1),
+  descricao: z.string().default(""),
   responsavel: z.enum(["contratante", "contratado"]).nullable().optional(),
   prazo: z.string().nullable().optional(), // DD/MM/AAAA
 });

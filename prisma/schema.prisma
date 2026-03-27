@@ -61,6 +61,19 @@ enum NivelConfianca {
   baixa
 }
 
+enum EstagioRescisao {
+  notificado
+  em_negociacao
+  aguardando_documentos
+  concluido
+}
+
+enum StatusModeloContrato {
+  rascunho
+  enviado
+  assinado
+}
+
 // ─────────────────────────────────────────────
 // Contrato
 // ─────────────────────────────────────────────
@@ -94,6 +107,7 @@ model Contrato {
   parcelas   Parcela[]
   obrigacoes Obrigacao[]
   alertas    Alerta[]
+  rescisao   RescisaoKanban?
 }
 
 // ─────────────────────────────────────────────
@@ -159,4 +173,57 @@ model Alerta {
   contrato  Contrato   @relation(fields: [contratoId], references: [id], onDelete: Cascade)
   parcela   Parcela?   @relation(fields: [parcelaId], references: [id], onDelete: SetNull)
   obrigacao Obrigacao? @relation(fields: [obrigacaoId], references: [id], onDelete: SetNull)
+}
+
+// ─────────────────────────────────────────────
+// Rescisão Kanban
+// ─────────────────────────────────────────────
+
+model RescisaoKanban {
+  id          String          @id @default(cuid())
+  contratoId  String          @unique
+  estagio     EstagioRescisao @default(notificado)
+  motivo      String?
+  responsavel String?
+  dataInicio  DateTime        @default(now())
+  dataPrevisao DateTime?
+  observacoes String?         @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contrato Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────
+// Modelos de Contrato (Templates)
+// ─────────────────────────────────────────────
+
+model ModeloContrato {
+  id           String   @id @default(cuid())
+  nome         String
+  descricao    String?
+  conteudoHtml String   @db.Text
+  variaveis    String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  gerados ContratoGerado[]
+}
+
+model ContratoGerado {
+  id               String               @id @default(cuid())
+  modeloId         String
+  identificador    String?
+  dados            Json
+  conteudoHtml     String               @db.Text
+  status           StatusModeloContrato @default(rascunho)
+  emailDestinatario String?
+  dataEnvio        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  modelo ModeloContrato @relation(fields: [modeloId], references: [id], onDelete: Cascade)
 }

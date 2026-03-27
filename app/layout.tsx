@@ -20,6 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center gap-4 text-sm">
               <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
               <Link href="/contratos" className="text-gray-600 hover:text-gray-900">Contratos</Link>
+              <Link href="/modelos" className="text-gray-600 hover:text-gray-900">Modelos</Link>
+              <Link href="/rescisao" className="text-gray-600 hover:text-gray-900">Rescisão</Link>
               <Link href="/alertas" className="text-gray-600 hover:text-gray-900">Alertas</Link>
             </div>
             <div className="ml-auto">

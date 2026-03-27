@@ -60,7 +60,17 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
             {contrato.contratado && <span>Contratado: <strong>{contrato.contratado}</strong></span>}
           </div>
         </div>
-        <ContratoStatusActions id={contrato.id} status={contrato.status} />
+        <div className="flex items-center gap-3">
+          <a
+            href={`/contratos/${contrato.id}/imprimir`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+          >
+            Gerar PDF
+          </a>
+          <ContratoStatusActions id={contrato.id} status={contrato.status} />
+        </div>
       </div>
 
       {/* Vencimento Geral */}
