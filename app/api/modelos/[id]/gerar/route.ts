@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 const GerarContratoSchema = z.object({
   identificador: z.string().nullable().optional(),
-  dados: z.record(z.string()),
+  dados: z.record(z.string(), z.string()),
   emailDestinatario: z.string().email().nullable().optional(),
 });
 
