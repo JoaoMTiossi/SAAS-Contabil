@@ -9,6 +9,24 @@ import { prisma } from "@/lib/prisma";
 import { sincronizarAlertasContrato } from "@/lib/scheduler";
 import { getSession } from "@/lib/auth/session";
 
+// ─── CNPJ Validator ─────────────────────────────────────────────
+
+function isValidCnpj(cnpj: string): boolean {
+  const digits = cnpj.replace(/\D/g, "");
+  if (digits.length !== 14) return false;
+  if (/^(\d)\1{13}$/.test(digits)) return false;
+  const calc = (size: number): number => {
+    let sum = 0;
+    let pos = size - 7;
+    for (let i = size; i >= 1; i--) {
+      sum += Number(digits.charAt(size - i)) * pos--;
+      if (pos < 2) pos = 9;
+    }
+    return sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  };
+  return calc(12) === Number(digits.charAt(12)) && calc(13) === Number(digits.charAt(13));
+}
+
 // ─── Schema de validação ───────────────────────────────────────────
 
 const ParcelaSchema = z.object({
@@ -28,6 +46,32 @@ const CriarContratoSchema = z.object({
   identificador: z.string().nullable().optional(),
   contratante: z.string().nullable().optional(),
   contratado: z.string().nullable().optional(),
+  cnpjContratante: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (v: string | null | undefined) => !v || isValidCnpj(v),
+      { message: "CNPJ do contratante inválido." }
+    ),
+  cnpjContratado: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (v: string | null | undefined) => !v || isValidCnpj(v),
+      { message: "CNPJ do contratado inválido." }
+    ),
+  emailContratante: z
+    .string()
+    .email("E-mail do contratante inválido.")
+    .nullable()
+    .optional(),
+  emailContratado: z
+    .string()
+    .email("E-mail do contratado inválido.")
+    .nullable()
+    .optional(),
   dataInicio: z.string().nullable().optional(),
   dataFim: z.string().nullable().optional(),
   renovacaoAutomatica: z.boolean().nullable().optional(),
@@ -38,6 +82,7 @@ const CriarContratoSchema = z.object({
   confiancaObrigacoes: z.enum(["alta", "media", "baixa"]).default("baixa"),
   parcelas: z.array(ParcelaSchema).default([]),
   obrigacoes: z.array(ObrigacaoSchema).default([]),
+  clienteId: z.string().nullable().optional(),
 });
 
 // ─── Helper: parse DD/MM/AAAA → Date ──────────────────────────────
@@ -66,11 +111,29 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    const escritorioId = searchParams.get("escritorioId");
     const pagina = Math.max(1, parseInt(searchParams.get("pagina") ?? "1") || 1);
     const porPagina = Math.min(100, Math.max(1, parseInt(searchParams.get("porPagina") ?? "20") || 20));
 
     const where: Record<string, unknown> = {};
     if (status) where.status = status;
+
+    // Filter by escritorio's clients if escritorioId provided
+    if (escritorioId) {
+      const clienteIds = (
+        await prisma.cliente.findMany({
+          where: { escritorioId },
+          select: { id: true },
+        })
+      ).map((c: { id: string }) => c.id);
+
+      if (clienteIds.length > 0) {
+        where.OR = [
+          { clienteId: { in: clienteIds } },
+          { clienteId: null },
+        ];
+      }
+    }
 
     const [total, contratos] = await Promise.all([
       prisma.contrato.count({ where }),
@@ -107,6 +170,7 @@ export async function POST(req: NextRequest) {
         identificador: data.identificador ?? null,
         contratante: data.contratante ?? null,
         contratado: data.contratado ?? null,
+        clienteId: data.clienteId ?? null,
         dataInicio: parseDateBR(data.dataInicio),
         dataFim: parseDateBR(data.dataFim),
         renovacaoAutomatica: data.renovacaoAutomatica ?? null,
@@ -116,7 +180,7 @@ export async function POST(req: NextRequest) {
         confiancaParcelas: data.confiancaParcelas,
         confiancaObrigacoes: data.confiancaObrigacoes,
         parcelas: {
-          create: data.parcelas.map((p) => ({
+          create: data.parcelas.map((p: { numero: number; descricao?: string | null; valor?: string | null; vencimento?: string | null }) => ({
             numero: p.numero,
             descricao: p.descricao ?? null,
             valor: parseValorDecimal(p.valor),
@@ -124,7 +188,7 @@ export async function POST(req: NextRequest) {
           })),
         },
         obrigacoes: {
-          create: data.obrigacoes.map((o) => ({
+          create: data.obrigacoes.map((o: { descricao: string; responsavel?: string | null; prazo?: string | null }) => ({
             descricao: o.descricao,
             responsavel: o.responsavel ?? null,
             prazo: parseDateBR(o.prazo),
@@ -134,7 +198,11 @@ export async function POST(req: NextRequest) {
     });
 
     // Gera alertas automaticamente após criar
-    await sincronizarAlertasContrato(contrato.id);
+    try {
+      await sincronizarAlertasContrato(contrato.id);
+    } catch (alertErr) {
+      console.error("[POST /api/contratos] Erro ao gerar alertas:", alertErr);
+    }
 
     const contratoCompleto = await prisma.contrato.findUnique({
       where: { id: contrato.id },
@@ -142,7 +210,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(contratoCompleto, { status: 201 });
-  } catch (err) {
+  } catch (err: unknown) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ erro: "Dados inválidos", detalhes: err.issues }, { status: 400 });
     }

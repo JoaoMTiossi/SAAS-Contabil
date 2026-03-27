@@ -8,12 +8,37 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 
+// ─── CNPJ Validator ─────────────────────────────────────────────
+
+function isValidCnpj(cnpj: string): boolean {
+  const digits = cnpj.replace(/\D/g, "");
+  if (digits.length !== 14) return false;
+  if (/^(\d)\1{13}$/.test(digits)) return false;
+  const calc = (size: number): number => {
+    let sum = 0;
+    let pos = size - 7;
+    for (let i = size; i >= 1; i--) {
+      sum += Number(digits.charAt(size - i)) * pos--;
+      if (pos < 2) pos = 9;
+    }
+    return sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  };
+  return calc(12) === Number(digits.charAt(12)) && calc(13) === Number(digits.charAt(13));
+}
+
 // ─── Schema de validação ───────────────────────────────────────────
 
 const CriarClienteSchema = z.object({
   razaoSocial: z.string().min(1, "Razão social é obrigatória."),
   nomeFantasia: z.string().nullable().optional(),
-  cnpj: z.string().nullable().optional(),
+  cnpj: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (v) => !v || isValidCnpj(v),
+      { message: "CNPJ inválido." }
+    ),
   email: z.string().email("E-mail inválido.").nullable().optional(),
   telefone: z.string().nullable().optional(),
   regimeTributario: z

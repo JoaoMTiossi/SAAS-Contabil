@@ -25,10 +25,12 @@ async function getContratos(escritorioId: string, status?: string) {
   ).map((c) => c.id);
 
   const where: Record<string, unknown> = {};
+  // Show contracts belonging to escritorio's clients OR contracts without a client
   if (clienteIds.length > 0) {
-    where.clienteId = { in: clienteIds };
-  } else {
-    where.clienteId = "__none__";
+    where.OR = [
+      { clienteId: { in: clienteIds } },
+      { clienteId: null },
+    ];
   }
   if (status) where.status = status;
 
@@ -100,6 +102,7 @@ export default async function ContratosPage({
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Identificador</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Partes</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">Início</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Término</th>
                 <th className="px-4 py-3 text-center font-semibold text-gray-600">Parcelas</th>
                 <th className="px-4 py-3 text-center font-semibold text-gray-600">Alertas</th>
@@ -114,11 +117,14 @@ export default async function ContratosPage({
                     {c.identificador ?? <span className="text-gray-400 italic">Sem ID</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    <div>{c.contratante ?? "—"}</div>
-                    <div className="text-xs text-gray-400">{c.contratado ?? "—"}</div>
+                    <div>{c.contratante ?? "\u2014"}</div>
+                    <div className="text-xs text-gray-400">{c.contratado ?? "\u2014"}</div>
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {c.dataFim ? format(c.dataFim, "dd/MM/yyyy") : "—"}
+                    {c.dataInicio ? format(c.dataInicio, "dd/MM/yyyy") : "\u2014"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {c.dataFim ? format(c.dataFim, "dd/MM/yyyy") : "\u2014"}
                   </td>
                   <td className="px-4 py-3 text-center text-gray-600">{c._count.parcelas}</td>
                   <td className="px-4 py-3 text-center text-gray-600">{c._count.alertas}</td>
@@ -127,9 +133,9 @@ export default async function ContratosPage({
                       {c.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-right">
                     <Link href={`/contratos/${c.id}`} className="text-blue-600 hover:underline text-xs">
-                      Ver
+                      Ver detalhes
                     </Link>
                   </td>
                 </tr>

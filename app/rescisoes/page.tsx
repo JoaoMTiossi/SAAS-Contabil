@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth/useAuth";
+import { applyDateMask, isValidDateBR } from "@/lib/validators";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -15,6 +16,7 @@ interface ChecklistItem {
 interface KanbanCard {
   id: string;
   motivo: string | null;
+  observacao: string | null;
   createdAt: string;
   dataPrevisao: string | null;
   contrato: { identificador: string | null; contratante: string | null; contratado: string | null };
@@ -58,6 +60,21 @@ function formatDate(iso: string): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+function isoToDateBR(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return formatDate(iso);
+  } catch {
+    return "";
+  }
+}
+
+function dateBRToISO(dateBR: string): string | null {
+  if (!isValidDateBR(dateBR)) return null;
+  const [d, m, y] = dateBR.split("/");
+  return `${y}-${m}-${d}`;
+}
+
 // ─── Component ──────────────────────────────────────────────────
 
 export default function RescisoesPage() {
@@ -73,6 +90,14 @@ export default function RescisoesPage() {
   // Card detail modal
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null);
   const [selectedCardColunaId, setSelectedCardColunaId] = useState<string>("");
+
+  // Card editing state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editMotivo, setEditMotivo] = useState("");
+  const [editObservacao, setEditObservacao] = useState("");
+  const [editDataPrevisao, setEditDataPrevisao] = useState("");
+  const [editDateError, setEditDateError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Nova rescisão form
   const [showForm, setShowForm] = useState(false);
@@ -205,14 +230,74 @@ export default function RescisoesPage() {
     }
   }
 
+  // ── Edit Card ─────────────────────────────────────────────
+
+  function startEditing() {
+    if (!selectedCard) return;
+    setEditMotivo(selectedCard.motivo ?? "");
+    setEditObservacao(selectedCard.observacao ?? "");
+    setEditDataPrevisao(isoToDateBR(selectedCard.dataPrevisao));
+    setEditDateError("");
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setIsEditing(false);
+    setEditDateError("");
+  }
+
+  async function handleSaveCard() {
+    if (!selectedCard) return;
+
+    // Validate date if provided
+    if (editDataPrevisao && !isValidDateBR(editDataPrevisao)) {
+      setEditDateError("Data inválida. Use DD/MM/AAAA.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        motivo: editMotivo || null,
+        observacao: editObservacao || null,
+      };
+      if (editDataPrevisao) {
+        payload.dataPrevisao = dateBRToISO(editDataPrevisao);
+      } else {
+        payload.dataPrevisao = null;
+      }
+
+      const res = await fetch(`/api/kanban/cards/${selectedCard.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Erro ao salvar card");
+
+      const updatedBoard = await fetch(`/api/kanban?escritorioId=${escritorioId}`).then((r) => r.json()) as KanbanBoard;
+      setBoard(updatedBoard);
+      const updatedCard = updatedBoard.colunas
+        .flatMap((col) => col.cards)
+        .find((c) => c.id === selectedCard.id);
+      if (updatedCard) setSelectedCard(updatedCard);
+      setIsEditing(false);
+    } catch {
+      alert("Erro ao salvar alterações.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function openCardDetail(card: KanbanCard, colunaId: string) {
     setSelectedCard(card);
     setSelectedCardColunaId(colunaId);
+    setIsEditing(false);
   }
 
   function closeCardDetail() {
     setSelectedCard(null);
     setSelectedCardColunaId("");
+    setIsEditing(false);
   }
 
   // ── Render ──────────────────────────────────────────────────
@@ -429,7 +514,7 @@ export default function RescisoesPage() {
             if (e.target === e.currentTarget) closeCardDetail();
           }}
         >
-          <div className="mx-4 w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="mx-4 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-2xl">
             {/* Modal Header */}
             <div className="mb-5 flex items-start justify-between">
               <div>
@@ -440,26 +525,98 @@ export default function RescisoesPage() {
                   <p className="text-sm text-slate-500">{selectedCard.contrato.identificador}</p>
                 )}
               </div>
-              <button
-                onClick={closeCardDetail}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-1">
+                {!isEditing && (
+                  <button
+                    onClick={startEditing}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600"
+                    title="Editar card"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                    </svg>
+                  </button>
+                )}
+                <button
+                  onClick={closeCardDetail}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            {/* Info */}
-            <div className="mb-5 space-y-2 text-sm text-slate-600">
-              {selectedCard.motivo && (
-                <p><span className="font-medium text-slate-700">Motivo:</span> {selectedCard.motivo}</p>
-              )}
-              <p><span className="font-medium text-slate-700">Data de solicitação:</span> {formatDate(selectedCard.createdAt)}</p>
-              {selectedCard.dataPrevisao && (
-                <p><span className="font-medium text-slate-700">Previsão:</span> {formatDate(selectedCard.dataPrevisao)}</p>
-              )}
-            </div>
+            {/* Info / Edit Mode */}
+            {isEditing ? (
+              <div className="mb-5 space-y-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Motivo</label>
+                  <textarea
+                    rows={3}
+                    value={editMotivo}
+                    onChange={(e) => setEditMotivo(e.target.value)}
+                    placeholder="Motivo da rescisão"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Data de Previsão</label>
+                  <input
+                    type="text"
+                    value={editDataPrevisao}
+                    onChange={(e) => {
+                      setEditDataPrevisao(applyDateMask(e.target.value));
+                      setEditDateError("");
+                    }}
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
+                    className={`w-full rounded-lg border px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                      ${editDateError ? "border-red-300 bg-red-50" : "border-slate-300 focus:border-blue-500"}`}
+                  />
+                  {editDateError && <p className="mt-0.5 text-xs text-red-500">{editDateError}</p>}
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Observação</label>
+                  <textarea
+                    rows={3}
+                    value={editObservacao}
+                    onChange={(e) => setEditObservacao(e.target.value)}
+                    placeholder="Observações adicionais"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={cancelEditing}
+                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveCard}
+                    disabled={saving}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {saving ? "Salvando..." : "Salvar"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-5 space-y-2 text-sm text-slate-600">
+                {selectedCard.motivo && (
+                  <p><span className="font-medium text-slate-700">Motivo:</span> {selectedCard.motivo}</p>
+                )}
+                <p><span className="font-medium text-slate-700">Data de solicitação:</span> {formatDate(selectedCard.createdAt)}</p>
+                {selectedCard.dataPrevisao && (
+                  <p><span className="font-medium text-slate-700">Previsão:</span> {formatDate(selectedCard.dataPrevisao)}</p>
+                )}
+                {selectedCard.observacao && (
+                  <p><span className="font-medium text-slate-700">Observação:</span> {selectedCard.observacao}</p>
+                )}
+              </div>
+            )}
 
             {/* Move to Column */}
             <div className="mb-5">

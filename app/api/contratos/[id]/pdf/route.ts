@@ -37,7 +37,7 @@ export async function GET(
       parcelas: contrato.parcelas.map((p) => ({
         numero: p.numero,
         descricao: p.descricao,
-        valor: p.valor,
+        valor: p.valor ? Number(p.valor) : 0,
         vencimento: p.vencimento,
       })),
       obrigacoes: contrato.obrigacoes.map((o) => ({

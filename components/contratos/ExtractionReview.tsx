@@ -3,24 +3,34 @@
 import { ContratoExtraido, NivelConfianca, ParcelaExtraida, ObrigacaoExtraida } from "@/types/contrato";
 import { ConfiancaBadge } from "./ConfiancaBadge";
 import { useState } from "react";
+import { applyDateMask, isValidDateBR, isValidEmail, applyCnpjMask, isValidCnpj } from "@/lib/validators";
 
 interface Props {
   dados: ContratoExtraido;
   onChange: (dados: ContratoExtraido) => void;
 }
 
+// ── Validation error display ──
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="mt-0.5 text-xs text-red-500">{message}</p>;
+}
+
+// ── Generic text input ──
 function InputField({
   label,
   value,
   onChange,
   placeholder,
   alerta,
+  error,
 }: {
   label: string;
   value: string | null;
   onChange: (v: string) => void;
   placeholder?: string;
   alerta?: boolean;
+  error?: string;
 }) {
   return (
     <div>
@@ -30,6 +40,158 @@ function InputField({
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value || "")}
         placeholder={placeholder ?? "Não encontrado"}
+        className={`w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1
+          ${error
+            ? "border-red-300 bg-red-50 focus:ring-red-400"
+            : alerta
+            ? "border-yellow-300 bg-yellow-50 focus:ring-yellow-400"
+            : "border-gray-200 focus:ring-blue-400"
+          }`}
+      />
+      <FieldError message={error} />
+    </div>
+  );
+}
+
+// ── Date input with auto mask ──
+function DateField({
+  label,
+  value,
+  onChange,
+  alerta,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (v: string | null) => void;
+  alerta?: boolean;
+}) {
+  const [touched, setTouched] = useState(false);
+  const displayValue = value ?? "";
+  const hasError = touched && displayValue.length > 0 && !isValidDateBR(displayValue);
+
+  function handleChange(raw: string) {
+    const masked = applyDateMask(raw);
+    onChange(masked || null);
+  }
+
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-gray-600">{label}</label>
+      <input
+        type="text"
+        value={displayValue}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={() => setTouched(true)}
+        placeholder="DD/MM/AAAA"
+        maxLength={10}
+        className={`w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1
+          ${hasError
+            ? "border-red-300 bg-red-50 focus:ring-red-400"
+            : alerta
+            ? "border-yellow-300 bg-yellow-50 focus:ring-yellow-400"
+            : "border-gray-200 focus:ring-blue-400"
+          }`}
+      />
+      <FieldError message={hasError ? "Data inválida. Use DD/MM/AAAA." : undefined} />
+    </div>
+  );
+}
+
+// ── Email input with validation ──
+function EmailField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const [touched, setTouched] = useState(false);
+  const displayValue = value ?? "";
+  const hasError = touched && displayValue.length > 0 && !isValidEmail(displayValue);
+
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-gray-600">{label}</label>
+      <input
+        type="email"
+        value={displayValue}
+        onChange={(e) => onChange(e.target.value || null)}
+        onBlur={() => setTouched(true)}
+        placeholder="email@exemplo.com"
+        className={`w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1
+          ${hasError
+            ? "border-red-300 bg-red-50 focus:ring-red-400"
+            : "border-gray-200 focus:ring-blue-400"
+          }`}
+      />
+      <FieldError message={hasError ? "E-mail inválido." : undefined} />
+    </div>
+  );
+}
+
+// ── CNPJ input with auto mask and validation ──
+function CnpjField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const [touched, setTouched] = useState(false);
+  const displayValue = value ?? "";
+  const digits = displayValue.replace(/\D/g, "");
+  const hasError = touched && digits.length > 0 && (digits.length < 14 || !isValidCnpj(displayValue));
+
+  function handleChange(raw: string) {
+    const masked = applyCnpjMask(raw);
+    onChange(masked || null);
+  }
+
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-gray-600">{label}</label>
+      <input
+        type="text"
+        value={displayValue}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={() => setTouched(true)}
+        placeholder="XX.XXX.XXX/XXXX-XX"
+        maxLength={18}
+        className={`w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1
+          ${hasError
+            ? "border-red-300 bg-red-50 focus:ring-red-400"
+            : "border-gray-200 focus:ring-blue-400"
+          }`}
+      />
+      <FieldError message={hasError ? "CNPJ inválido." : undefined} />
+    </div>
+  );
+}
+
+// ── Currency input ──
+function CurrencyField({
+  label,
+  value,
+  onChange,
+  alerta,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (v: string | null) => void;
+  alerta?: boolean;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-gray-600">{label}</label>
+      <input
+        type="text"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
+        placeholder="R$ 0,00"
         className={`w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1
           ${alerta
             ? "border-yellow-300 bg-yellow-50 focus:ring-yellow-400"
@@ -137,25 +299,22 @@ export function ExtractionReview({ dados, onChange }: Props) {
           <ConfiancaBadge nivel={conf.vencimento_geral} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <InputField
+          <DateField
             label="Data de Início"
             value={dados.vencimento_geral.data_inicio}
-            onChange={(v) => updateVencimento("data_inicio", v || null)}
-            placeholder="DD/MM/AAAA"
+            onChange={(v) => updateVencimento("data_inicio", v)}
             alerta={needsReview(conf.vencimento_geral)}
           />
-          <InputField
+          <DateField
             label="Data de Término"
             value={dados.vencimento_geral.data_fim}
-            onChange={(v) => updateVencimento("data_fim", v || null)}
-            placeholder="DD/MM/AAAA"
+            onChange={(v) => updateVencimento("data_fim", v)}
             alerta={needsReview(conf.vencimento_geral)}
           />
-          <InputField
+          <DateField
             label="Prazo Limite para Aviso de Não Renovação"
             value={dados.vencimento_geral.prazo_aviso_cancelamento}
-            onChange={(v) => updateVencimento("prazo_aviso_cancelamento", v || null)}
-            placeholder="DD/MM/AAAA"
+            onChange={(v) => updateVencimento("prazo_aviso_cancelamento", v)}
             alerta={needsReview(conf.vencimento_geral)}
           />
           <div>
@@ -207,7 +366,7 @@ export function ExtractionReview({ dados, onChange }: Props) {
           {dados.parcelas.map((p, idx) => (
             <div key={idx} className="grid gap-2 rounded border border-gray-100 bg-gray-50 p-3 sm:grid-cols-4">
               <div>
-                <label className="mb-1 block text-xs text-gray-500">Nº</label>
+                <label className="mb-1 block text-xs text-gray-500">N.</label>
                 <input
                   type="number"
                   value={p.numero}
@@ -221,20 +380,18 @@ export function ExtractionReview({ dados, onChange }: Props) {
                 onChange={(v) => updateParcela(idx, "descricao", v || null)}
                 alerta={needsReview(conf.parcelas)}
               />
-              <InputField
+              <CurrencyField
                 label="Valor"
                 value={p.valor}
-                onChange={(v) => updateParcela(idx, "valor", v || null)}
-                placeholder="R$ 0,00"
+                onChange={(v) => updateParcela(idx, "valor", v)}
                 alerta={needsReview(conf.parcelas)}
               />
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <InputField
+                  <DateField
                     label="Vencimento"
                     value={p.vencimento}
-                    onChange={(v) => updateParcela(idx, "vencimento", v || null)}
-                    placeholder="DD/MM/AAAA"
+                    onChange={(v) => updateParcela(idx, "vencimento", v)}
                     alerta={!p.vencimento}
                   />
                 </div>
@@ -298,11 +455,10 @@ export function ExtractionReview({ dados, onChange }: Props) {
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <InputField
+                  <DateField
                     label="Prazo"
                     value={o.prazo}
-                    onChange={(v) => updateObrigacao(idx, "prazo", v || null)}
-                    placeholder="DD/MM/AAAA"
+                    onChange={(v) => updateObrigacao(idx, "prazo", v)}
                     alerta={!o.prazo}
                   />
                 </div>
