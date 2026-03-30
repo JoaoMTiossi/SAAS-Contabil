@@ -57,14 +57,18 @@ export async function GET(
 
     const filename = `contrato-${contrato.identificador ?? contrato.id}.pdf`;
 
-    return new NextResponse(new Uint8Array(pdfBuffer), {
+    return new NextResponse(pdfBuffer, {
+      status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
+        "Content-Length": String(pdfBuffer.length),
+        "Cache-Control": "no-store",
       },
     });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("[GET /api/contratos/[id]/pdf]", err);
-    return NextResponse.json({ erro: "Erro ao gerar PDF." }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    return NextResponse.json({ erro: `Erro ao gerar PDF: ${message}` }, { status: 500 });
   }
 }

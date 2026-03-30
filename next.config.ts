@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  serverExternalPackages: ["pdfkit", "fontkit", "linebreak", "png-js"],
   async headers() {
     return [
       {

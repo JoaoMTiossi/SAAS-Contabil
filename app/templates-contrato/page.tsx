@@ -289,13 +289,28 @@ export default function TemplatesContratoPage() {
         }),
       });
 
+      const json = await res.json();
+
       if (!res.ok) {
-        const json = await res.json();
         throw new Error(json.erro ?? "Erro ao enviar.");
       }
 
-      setEnvioResultado("Contrato enviado para assinatura com sucesso!");
-      setEtapa("enviar");
+      if (json.aviso) {
+        setEnvioErro(json.aviso);
+        setEtapa("enviar");
+      } else {
+        setEnvioResultado("Contrato enviado para assinatura com sucesso!");
+        setEtapa("enviar");
+      }
+
+      // Show per-email results
+      if (json.resultados) {
+        const falhas = json.resultados.filter((r: { enviado: boolean }) => !r.enviado);
+        if (falhas.length > 0 && !json.aviso) {
+          const msgs = falhas.map((f: { email: string; erro?: string }) => `${f.email}: ${f.erro || "Falha"}`).join("; ");
+          setEnvioErro(`Falha ao enviar para: ${msgs}`);
+        }
+      }
     } catch (err) {
       setEnvioErro(err instanceof Error ? err.message : "Erro desconhecido.");
       setEtapa("enviar");

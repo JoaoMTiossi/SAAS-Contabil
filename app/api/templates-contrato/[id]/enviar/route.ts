@@ -62,26 +62,35 @@ export async function POST(
 
     for (const assinatura of assinaturas) {
       try {
-        const linkAssinatura = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/assinar/${assinatura.token}`;
+        const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const linkAssinatura = `${baseUrl}/assinar/${assinatura.token}`;
         const mensagemHtml = `
-          <h2>Solicitação de Assinatura de Contrato</h2>
-          <p>Olá <strong>${assinatura.nome}</strong>,</p>
-          <p>Você foi convidado(a) para assinar o contrato <strong>${contrato.identificador || contrato.id}</strong> como <strong>${assinatura.papel}</strong>.</p>
+          <h2>Solicitacao de Assinatura de Contrato</h2>
+          <p>Ola <strong>${assinatura.nome}</strong>,</p>
+          <p>Voce foi convidado(a) para assinar o contrato <strong>${contrato.identificador || contrato.id}</strong> como <strong>${assinatura.papel}</strong>.</p>
           ${data.mensagem ? `<p>${data.mensagem}</p>` : ""}
           <p>Clique no link abaixo para visualizar e assinar o contrato:</p>
           <p><a href="${linkAssinatura}" style="background-color:#2563eb;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;font-weight:600;">Assinar Contrato</a></p>
-          <p style="color:#6b7280;font-size:12px;margin-top:24px;">Este link é pessoal e intransferível. Caso não reconheça esta solicitação, ignore este e-mail.</p>
+          <p style="color:#6b7280;font-size:12px;margin-top:24px;">Este link e pessoal e intransferivel. Caso nao reconheca esta solicitacao, ignore este e-mail.</p>
         `;
 
-        await enviarEmail({
+        const enviado = await enviarEmail({
           escritorioId: session.user.escritorioId,
           para: assinatura.email,
           assunto: `Assinatura de Contrato - ${contrato.identificador || "Contrato"}`,
-          corpo: `Assinatura de contrato solicitada para ${assinatura.nome}`,
+          corpo: `Assinatura de contrato solicitada para ${assinatura.nome}. Link: ${linkAssinatura}`,
           html: mensagemHtml,
         });
 
-        resultados.push({ email: assinatura.email, enviado: true });
+        if (enviado) {
+          resultados.push({ email: assinatura.email, enviado: true });
+        } else {
+          resultados.push({
+            email: assinatura.email,
+            enviado: false,
+            erro: "SMTP nao configurado. Configure o SMTP nas configuracoes do escritorio.",
+          });
+        }
       } catch (emailErr) {
         console.error(`Erro ao enviar email para ${assinatura.email}:`, emailErr);
         resultados.push({
@@ -101,8 +110,16 @@ export async function POST(
       },
     });
 
+    const todosEnviados = resultados.every((r) => r.enviado);
+    const nenhumEnviado = resultados.every((r) => !r.enviado);
+
     return NextResponse.json({
-      ok: true,
+      ok: !nenhumEnviado,
+      aviso: nenhumEnviado
+        ? "Nenhum e-mail foi enviado. Verifique se o SMTP esta configurado nas configuracoes do escritorio."
+        : !todosEnviados
+        ? "Alguns e-mails nao puderam ser enviados. Verifique os resultados."
+        : undefined,
       assinaturas: assinaturas.map((a: { id: string; nome: string; email: string; status: string }) => ({ id: a.id, nome: a.nome, email: a.email, status: a.status })),
       resultados,
     });
