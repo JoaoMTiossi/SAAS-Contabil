@@ -1,5 +1,6 @@
 /**
  * GET /api/kanban?escritorioId=xxx — board completo com colunas e cards
+ * Clientes (role=cliente) veem apenas seus próprios cards.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -17,6 +18,20 @@ export async function GET(req: NextRequest) {
 
   try {
     const board = await obterOuCriarBoard(escritorioId);
+
+    // Se o usuário é cliente, filtrar apenas os cards do seu clienteId
+    const clienteId = session.user.clienteId;
+    if (session.user.role === "cliente" && clienteId) {
+      const filteredBoard = {
+        ...board,
+        colunas: board.colunas.map((coluna) => ({
+          ...coluna,
+          cards: coluna.cards.filter((card) => card.clienteId === clienteId),
+        })),
+      };
+      return NextResponse.json(filteredBoard);
+    }
+
     return NextResponse.json(board);
   } catch (err) {
     console.error("[GET /api/kanban]", err);

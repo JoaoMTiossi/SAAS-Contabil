@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/useAuth";
 import Pagination from "@/components/Pagination";
@@ -92,6 +92,14 @@ export default function HonorariosPage() {
   const [paginaHon, setPaginaHon] = useState(1);
   const [paginaLanc, setPaginaLanc] = useState(1);
   const porPagina = 15;
+
+  /* Email state */
+  const [emailLancId, setEmailLancId] = useState<string | null>(null);
+  const [emailDest, setEmailDest] = useState("");
+  const [emailAssunto, setEmailAssunto] = useState("");
+  const [emailCorpo, setEmailCorpo] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<string | null>(null);
 
   /* ── Fetch data ──────────────────────────────────────────── */
 
@@ -241,6 +249,42 @@ export default function HonorariosPage() {
       setErro(e instanceof Error ? e.message : "Erro desconhecido");
     } finally {
       setSalvando(false);
+    }
+  }
+
+  /* ── Email honorário ─────────────────────────────────────── */
+
+  function openEmailForm(l: Lancamento) {
+    setEmailLancId(l.id);
+    setEmailDest("");
+    setEmailAssunto(`Honor\u00e1rio - Compet\u00eancia ${l.competencia}`);
+    setEmailCorpo(`Prezado(a),\n\nSegue o honor\u00e1rio referente \u00e0 compet\u00eancia ${l.competencia}.\n\nValor: ${formatBRL(l.valor)}\nVencimento: ${new Date(l.vencimento).toLocaleDateString("pt-BR")}\n\nFavor efetuar o pagamento at\u00e9 a data de vencimento.\n\nAtenciosamente.`);
+    setEmailMsg(null);
+    setSendingEmail(false);
+  }
+
+  async function handleSendEmail() {
+    setSendingEmail(true);
+    setEmailMsg(null);
+    try {
+      const res = await fetch("/api/honorarios/enviar-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destinatario: emailDest,
+          assunto: emailAssunto,
+          corpo: emailCorpo,
+          escritorioId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.erro ?? "Erro ao enviar");
+      setEmailMsg("Email enviado com sucesso!");
+      setTimeout(() => setEmailLancId(null), 2000);
+    } catch (e) {
+      setEmailMsg(e instanceof Error ? e.message : "Erro ao enviar");
+    } finally {
+      setSendingEmail(false);
     }
   }
 
@@ -452,7 +496,8 @@ export default function HonorariosPage() {
               </thead>
               <tbody className="divide-y">
                 {lancamentos.slice((paginaLanc - 1) * porPagina, paginaLanc * porPagina).map((l) => (
-                  <tr key={l.id} className="hover:bg-gray-50">
+                  <React.Fragment key={l.id}>
+                  <tr className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {l.honorario?.cliente?.razaoSocial ?? "—"}
                     </td>
@@ -467,15 +512,49 @@ export default function HonorariosPage() {
                       <StatusBadge status={l.status} />
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handlePagar(l)}
-                        disabled={pagandoId === l.id}
-                        className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {pagandoId === l.id ? "Processando..." : "Marcar Pago"}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openEmailForm(l)}
+                          title="Enviar por email"
+                          className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+                        >
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handlePagar(l)}
+                          disabled={pagandoId === l.id}
+                          className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                        >
+                          {pagandoId === l.id ? "Processando..." : "Marcar Pago"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
+                  {emailLancId === l.id && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-3 bg-gray-50">
+                        <div className="space-y-2 max-w-lg">
+                          {emailMsg && (
+                            <p className={`text-xs font-medium ${emailMsg.includes("sucesso") ? "text-green-600" : "text-red-600"}`}>{emailMsg}</p>
+                          )}
+                          <div className="flex gap-2">
+                            <input type="email" placeholder="Email do destinat\u00e1rio" value={emailDest} onChange={(e) => setEmailDest(e.target.value)} className="flex-1 rounded border border-gray-200 px-2 py-1 text-xs" />
+                          </div>
+                          <input type="text" value={emailAssunto} onChange={(e) => setEmailAssunto(e.target.value)} className="w-full rounded border border-gray-200 px-2 py-1 text-xs" />
+                          <textarea rows={4} value={emailCorpo} onChange={(e) => setEmailCorpo(e.target.value)} className="w-full rounded border border-gray-200 px-2 py-1 text-xs" />
+                          <div className="flex gap-2">
+                            <button onClick={handleSendEmail} disabled={sendingEmail || !emailDest} className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                              {sendingEmail ? "Enviando..." : "Enviar Email"}
+                            </button>
+                            <button onClick={() => setEmailLancId(null)} className="rounded border border-gray-200 px-3 py-1 text-xs text-gray-600 hover:bg-gray-100">Cancelar</button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

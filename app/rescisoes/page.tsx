@@ -20,7 +20,7 @@ interface KanbanCard {
   createdAt: string;
   dataPrevisao: string | null;
   contrato: { identificador: string | null; contratante: string | null; contratado: string | null };
-  cliente: { razaoSocial: string | null };
+  cliente: { razaoSocial: string | null; email?: string | null };
   checklists: ChecklistItem[];
 }
 
@@ -75,6 +75,54 @@ function dateBRToISO(dateBR: string): string | null {
   return `${y}-${m}-${d}`;
 }
 
+// ─── Email Templates ───────────────────────────────────────────
+
+interface EmailTemplate {
+  assunto: string;
+  corpo: string;
+}
+
+function getEmailTemplate(
+  colunaNome: string,
+  card: KanbanCard
+): EmailTemplate {
+  const identificador = card.contrato?.identificador || "[não informado]";
+  const motivo = card.motivo || "[não informado]";
+  const dataPrevisao = card.dataPrevisao
+    ? formatDate(card.dataPrevisao)
+    : "[não informada]";
+
+  const templates: Record<string, EmailTemplate> = {
+    Solicitado: {
+      assunto: "Notificação de Rescisão Contratual",
+      corpo: `Prezado(a),\n\nInformamos que foi iniciado o processo de rescisão do contrato ${identificador}.\n\nMotivo: ${motivo}\n\nFicamos à disposição para esclarecimentos.`,
+    },
+    "Aviso Enviado": {
+      assunto: "Aviso Prévio de Rescisão",
+      corpo: `Prezado(a),\n\nConforme comunicado anteriormente, segue o aviso prévio referente à rescisão do contrato ${identificador}.\n\nData prevista: ${dataPrevisao}\n\nSolicitamos os encaminhamentos necessários.`,
+    },
+    "Distrato Gerado": {
+      assunto: "Distrato Contratual - Documento Gerado",
+      corpo: `Prezado(a),\n\nO distrato referente ao contrato ${identificador} foi gerado.\n\nSolicitamos a análise e assinatura do documento em anexo.`,
+    },
+    "Obrigações Pendentes": {
+      assunto: "Obrigações Pendentes - Rescisão Contratual",
+      corpo: `Prezado(a),\n\nExistem obrigações pendentes referentes à rescisão do contrato ${identificador}.\n\nSolicitamos a regularização para conclusão do processo.`,
+    },
+    "Baixa Concluída": {
+      assunto: "Conclusão da Rescisão Contratual",
+      corpo: `Prezado(a),\n\nInformamos que o processo de rescisão do contrato ${identificador} foi concluído com sucesso.\n\nAgradecemos a colaboração.`,
+    },
+  };
+
+  return (
+    templates[colunaNome] || {
+      assunto: "Rescisão Contratual",
+      corpo: `Prezado(a),\n\nSegue informação referente à rescisão do contrato ${identificador}.`,
+    }
+  );
+}
+
 // ─── Component ──────────────────────────────────────────────────
 
 export default function RescisoesPage() {
@@ -98,6 +146,14 @@ export default function RescisoesPage() {
   const [editDataPrevisao, setEditDataPrevisao] = useState("");
   const [editDateError, setEditDateError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Email state
+  const [showEmail, setShowEmail] = useState(false);
+  const [emailDestinatario, setEmailDestinatario] = useState("");
+  const [emailAssunto, setEmailAssunto] = useState("");
+  const [emailCorpo, setEmailCorpo] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ tipo: "sucesso" | "erro"; texto: string } | null>(null);
 
   // Nova rescisão form
   const [showForm, setShowForm] = useState(false);
@@ -288,10 +344,48 @@ export default function RescisoesPage() {
     }
   }
 
+  function openEmailSection() {
+    if (!selectedCard || !board) return;
+    const coluna = board.colunas.find((c) => c.id === selectedCardColunaId);
+    const template = getEmailTemplate(coluna?.nome ?? "", selectedCard);
+    setEmailDestinatario(selectedCard.cliente?.email ?? "");
+    setEmailAssunto(template.assunto);
+    setEmailCorpo(template.corpo);
+    setEmailMsg(null);
+    setShowEmail(true);
+  }
+
+  async function handleSendEmail() {
+    if (!selectedCard) return;
+    setSendingEmail(true);
+    setEmailMsg(null);
+    try {
+      const res = await fetch(`/api/kanban/cards/${selectedCard.id}/email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destinatario: emailDestinatario,
+          assunto: emailAssunto,
+          corpo: emailCorpo,
+          escritorioId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.erro ?? "Erro ao enviar email");
+      setEmailMsg({ tipo: "sucesso", texto: "Email enviado com sucesso!" });
+    } catch (err) {
+      setEmailMsg({ tipo: "erro", texto: err instanceof Error ? err.message : "Erro ao enviar" });
+    } finally {
+      setSendingEmail(false);
+    }
+  }
+
   function openCardDetail(card: KanbanCard, colunaId: string) {
     setSelectedCard(card);
     setSelectedCardColunaId(colunaId);
     setIsEditing(false);
+    setShowEmail(false);
+    setEmailMsg(null);
   }
 
   function closeCardDetail() {
@@ -635,6 +729,68 @@ export default function RescisoesPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Email Section */}
+            <div className="mb-5">
+              {!showEmail ? (
+                <button
+                  onClick={openEmailSection}
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 w-full justify-center"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                  </svg>
+                  Enviar Email
+                </button>
+              ) : (
+                <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-slate-700">Enviar Email</h3>
+                    <button onClick={() => setShowEmail(false)} className="text-xs text-slate-400 hover:text-slate-600">Fechar</button>
+                  </div>
+                  {emailMsg && (
+                    <div className={`rounded-lg px-3 py-2 text-xs font-medium ${emailMsg.tipo === "sucesso" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                      {emailMsg.texto}
+                    </div>
+                  )}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Destinatário</label>
+                    <input
+                      type="email"
+                      value={emailDestinatario}
+                      onChange={(e) => setEmailDestinatario(e.target.value)}
+                      placeholder="email@exemplo.com"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Assunto</label>
+                    <input
+                      type="text"
+                      value={emailAssunto}
+                      onChange={(e) => setEmailAssunto(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Corpo</label>
+                    <textarea
+                      rows={5}
+                      value={emailCorpo}
+                      onChange={(e) => setEmailCorpo(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSendEmail}
+                    disabled={sendingEmail || !emailDestinatario}
+                    className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {sendingEmail ? "Enviando..." : "Enviar"}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Checklist */}

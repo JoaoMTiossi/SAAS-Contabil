@@ -12,6 +12,7 @@ interface Props {
 export function FileUploadZone({ onTextoPuro, onExtraido, carregando, setCarregando }: Props) {
   const [arrastando, setArrastando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [textoColado, setTextoColado] = useState("");
 
   const processar = useCallback(
     async (arquivo: File) => {
@@ -36,6 +37,13 @@ export function FileUploadZone({ onTextoPuro, onExtraido, carregando, setCarrega
     },
     [onTextoPuro, onExtraido, setCarregando]
   );
+
+  function handleAvancar() {
+    if (!textoColado.trim()) return;
+    const blob = new Blob([textoColado], { type: "text/plain" });
+    const file = new File([blob], "contrato.txt", { type: "text/plain" });
+    processar(file);
+  }
 
   const onDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -92,24 +100,29 @@ export function FileUploadZone({ onTextoPuro, onExtraido, carregando, setCarrega
       {/* Alternativa: colar texto */}
       <details className="rounded border border-gray-200 bg-white">
         <summary className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900">
-          Ou cole o texto do contrato
+          Ou cole/digite o texto do contrato
         </summary>
         <div className="p-4">
           <textarea
             rows={8}
-            placeholder="Cole aqui o texto do contrato..."
+            placeholder="Cole ou digite aqui o texto do contrato..."
+            value={textoColado}
+            onChange={(e) => setTextoColado(e.target.value)}
             className="w-full rounded border border-gray-200 p-3 text-sm focus:border-blue-400 focus:outline-none"
-            onBlur={(e) => {
-              if (e.target.value.trim()) {
-                const blob = new Blob([e.target.value], { type: "text/plain" });
-                const file = new File([blob], "contrato.txt", { type: "text/plain" });
-                processar(file);
-              }
-            }}
           />
-          <p className="mt-1 text-xs text-gray-400">
-            A extração ocorre ao clicar fora do campo de texto.
-          </p>
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-xs text-gray-400">
+              Clique em &quot;Avan\u00e7ar&quot; quando terminar de digitar.
+            </p>
+            <button
+              type="button"
+              onClick={handleAvancar}
+              disabled={carregando || !textoColado.trim()}
+              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {carregando ? "Processando..." : "Avan\u00e7ar"}
+            </button>
+          </div>
         </div>
       </details>
 

@@ -17,6 +17,7 @@ datasource db {
 enum Role {
   admin
   colaborador
+  cliente
 }
 
 enum RegimeTributario {
@@ -220,11 +221,13 @@ model Usuario {
   email        String @unique
   senha        String
   role         Role   @default(colaborador)
+  clienteId    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   escritorio         Escritorio          @relation(fields: [escritorioId], references: [id], onDelete: Cascade)
+  cliente            Cliente?            @relation(fields: [clienteId], references: [id], onDelete: SetNull)
   timesheets         Timesheet[]
   metas              MetaProdutividade[]
   calendarioResponsavel CalendarioFiscalCliente[] @relation("Responsavel")
@@ -249,6 +252,7 @@ model Cliente {
   calendarios CalendarioFiscalCliente[]
   timesheets  Timesheet[]
   kanbanCards KanbanCard[]
+  usuarios    Usuario[]
 
   @@index([escritorioId])
   @@index([cnpj])

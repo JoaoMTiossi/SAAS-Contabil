@@ -34,6 +34,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       parcelas: { orderBy: { numero: "asc" } },
       obrigacoes: { orderBy: { prazo: "asc" } },
       alertas: { orderBy: { dataAlerta: "asc" } },
+      assinaturas: { orderBy: { createdAt: "asc" } },
     },
   });
 

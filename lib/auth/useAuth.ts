@@ -12,5 +12,6 @@ export function useAuth() {
     usuarioId: session?.user?.id ?? "",
     role: session?.user?.role ?? "",
     modulos: session?.user?.modulos ?? [],
+    clienteId: session?.user?.clienteId ?? null,
   };
 }

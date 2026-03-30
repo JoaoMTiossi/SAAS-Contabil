@@ -32,6 +32,7 @@ export const authOptions: NextAuthOptions = {
           escritorioId: usuario.escritorioId,
           escritorioNome: usuario.escritorio.nome,
           modulos: usuario.escritorio.modulos.map((m) => m.modulo),
+          clienteId: usuario.clienteId ?? null,
         };
       },
     }),
@@ -45,12 +46,14 @@ export const authOptions: NextAuthOptions = {
           escritorioId: string;
           escritorioNome: string;
           modulos: string[];
+          clienteId: string | null;
         };
         token.id = u.id;
         token.role = u.role;
         token.escritorioId = u.escritorioId;
         token.escritorioNome = u.escritorioNome;
         token.modulos = u.modulos;
+        token.clienteId = u.clienteId;
       }
       return token;
     },
@@ -61,6 +64,7 @@ export const authOptions: NextAuthOptions = {
         session.user.escritorioId = token.escritorioId as string;
         session.user.escritorioNome = token.escritorioNome as string;
         session.user.modulos = token.modulos as string[];
+        session.user.clienteId = (token.clienteId as string | null) ?? null;
       }
       return session;
     },

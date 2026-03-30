@@ -10,6 +10,7 @@ declare module "next-auth" {
       escritorioId: string;
       escritorioNome: string;
       modulos: string[];
+      clienteId: string | null;
     };
   }
 
@@ -19,6 +20,7 @@ declare module "next-auth" {
     escritorioId: string;
     escritorioNome: string;
     modulos: string[];
+    clienteId: string | null;
   }
 }
 
@@ -29,5 +31,6 @@ declare module "next-auth/jwt" {
     escritorioId: string;
     escritorioNome: string;
     modulos: string[];
+    clienteId: string | null;
   }
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import PreviewButton from "@/components/contratos/PreviewButton";
 
 type Status = "ativo" | "encerrado" | "renovado" | "cancelado";
 
@@ -134,9 +135,12 @@ export default async function ContratosPage({
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link href={`/contratos/${c.id}`} className="text-blue-600 hover:underline text-xs">
-                      Ver detalhes
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      <PreviewButton contratoId={c.id} />
+                      <Link href={`/contratos/${c.id}`} className="text-blue-600 hover:underline text-xs">
+                        Ver detalhes
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

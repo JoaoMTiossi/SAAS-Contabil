@@ -33,7 +33,7 @@ export async function obterOuCriarBoard(escritorioId: string) {
               contrato: {
                 select: { identificador: true, contratante: true, contratado: true },
               },
-              cliente: { select: { razaoSocial: true } },
+              cliente: { select: { razaoSocial: true, email: true } },
               checklists: { orderBy: { ordem: "asc" } },
             },
           },
@@ -68,7 +68,7 @@ export async function obterOuCriarBoard(escritorioId: string) {
                 contrato: {
                   select: { identificador: true, contratante: true, contratado: true },
                 },
-                cliente: { select: { razaoSocial: true } },
+                cliente: { select: { razaoSocial: true, email: true } },
                 checklists: { orderBy: { ordem: "asc" } },
               },
             },
