@@ -155,6 +155,18 @@ export default function RescisoesPage() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailMsg, setEmailMsg] = useState<{ tipo: "sucesso" | "erro"; texto: string } | null>(null);
 
+  // Delete card
+  const [deletingCard, setDeletingCard] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Checklist editing
+  const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
+  const [editingChecklistDesc, setEditingChecklistDesc] = useState("");
+
+  // Column editing
+  const [editingColunaId, setEditingColunaId] = useState<string | null>(null);
+  const [editingColunaNome, setEditingColunaNome] = useState("");
+
   // Nova rescisão form
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ contratoId: "", clienteId: "", motivo: "" });
@@ -392,6 +404,93 @@ export default function RescisoesPage() {
     setSelectedCard(null);
     setSelectedCardColunaId("");
     setIsEditing(false);
+    setConfirmDelete(false);
+  }
+
+  // ── Delete Card ───────────────────────────────────────────
+  async function handleDeleteCard() {
+    if (!selectedCard) return;
+    setDeletingCard(true);
+    try {
+      const res = await fetch(`/api/kanban/cards/${selectedCard.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Erro ao excluir card");
+      closeCardDetail();
+      await fetchBoard();
+    } catch {
+      alert("Erro ao excluir card.");
+    } finally {
+      setDeletingCard(false);
+      setConfirmDelete(false);
+    }
+  }
+
+  // ── Edit Checklist Description ────────────────────────────
+  async function handleSaveChecklistDesc(checklistId: string) {
+    if (!editingChecklistDesc.trim()) return;
+    try {
+      const res = await fetch(`/api/kanban/checklists/${checklistId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ descricao: editingChecklistDesc.trim() }),
+      });
+      if (!res.ok) throw new Error("Erro ao atualizar checklist");
+      setEditingChecklistId(null);
+      const updatedBoard = await fetch(`/api/kanban?escritorioId=${escritorioId}`).then((r) => r.json()) as KanbanBoard;
+      setBoard(updatedBoard);
+      if (selectedCard) {
+        const updatedCard = updatedBoard.colunas.flatMap((col) => col.cards).find((c) => c.id === selectedCard.id);
+        if (updatedCard) setSelectedCard(updatedCard);
+      }
+    } catch {
+      alert("Erro ao atualizar checklist.");
+    }
+  }
+
+  async function handleDeleteChecklist(checklistId: string) {
+    try {
+      const res = await fetch(`/api/kanban/checklists/${checklistId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Erro ao excluir checklist");
+      const updatedBoard = await fetch(`/api/kanban?escritorioId=${escritorioId}`).then((r) => r.json()) as KanbanBoard;
+      setBoard(updatedBoard);
+      if (selectedCard) {
+        const updatedCard = updatedBoard.colunas.flatMap((col) => col.cards).find((c) => c.id === selectedCard.id);
+        if (updatedCard) setSelectedCard(updatedCard);
+      }
+    } catch {
+      alert("Erro ao excluir item do checklist.");
+    }
+  }
+
+  // ── Column Rename / Delete ────────────────────────────────
+  async function handleRenameColuna(colunaId: string) {
+    if (!editingColunaNome.trim()) return;
+    try {
+      const res = await fetch(`/api/kanban/colunas/${colunaId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: editingColunaNome.trim() }),
+      });
+      if (!res.ok) throw new Error("Erro ao renomear coluna");
+      setEditingColunaId(null);
+      await fetchBoard();
+    } catch {
+      alert("Erro ao renomear coluna.");
+    }
+  }
+
+  async function handleDeleteColuna(colunaId: string) {
+    if (!confirm("Tem certeza que deseja excluir esta coluna? A coluna deve estar vazia.")) return;
+    try {
+      const res = await fetch(`/api/kanban/colunas/${colunaId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.erro || "Erro ao excluir coluna.");
+        return;
+      }
+      await fetchBoard();
+    } catch {
+      alert("Erro ao excluir coluna.");
+    }
   }
 
   // ── Render ──────────────────────────────────────────────────
@@ -548,11 +647,49 @@ export default function RescisoesPage() {
                 className="rounded-t-xl border-b border-slate-200 px-4 py-3"
                 style={{ borderTopWidth: "3px", borderTopColor: coluna.cor || "#94A3B8" }}
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-800">{coluna.nome}</h3>
-                  <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-slate-600 shadow-sm">
-                    {coluna.cards.length}
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  {editingColunaId === coluna.id ? (
+                    <form
+                      onSubmit={(e) => { e.preventDefault(); handleRenameColuna(coluna.id); }}
+                      className="flex items-center gap-1 flex-1"
+                    >
+                      <input
+                        autoFocus
+                        value={editingColunaNome}
+                        onChange={(e) => setEditingColunaNome(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Escape") setEditingColunaId(null); }}
+                        className="flex-1 rounded border border-slate-300 px-2 py-0.5 text-sm font-semibold text-slate-800 focus:border-blue-500 focus:outline-none"
+                      />
+                      <button type="submit" className="text-blue-600 hover:text-blue-700" title="Salvar">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                      </button>
+                      <button type="button" onClick={() => setEditingColunaId(null)} className="text-slate-400 hover:text-slate-600" title="Cancelar">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                      </button>
+                    </form>
+                  ) : (
+                    <h3
+                      className="text-sm font-semibold text-slate-800 cursor-pointer hover:text-blue-600"
+                      onDoubleClick={() => { setEditingColunaId(coluna.id); setEditingColunaNome(coluna.nome); }}
+                      title="Duplo clique para renomear"
+                    >
+                      {coluna.nome}
+                    </h3>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-slate-600 shadow-sm">
+                      {coluna.cards.length}
+                    </span>
+                    {coluna.cards.length === 0 && (
+                      <button
+                        onClick={() => handleDeleteColuna(coluna.id)}
+                        className="rounded p-0.5 text-slate-300 hover:text-red-500"
+                        title="Excluir coluna"
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -632,6 +769,15 @@ export default function RescisoesPage() {
                   </button>
                 )}
                 <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                  title="Excluir card"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                  </svg>
+                </button>
+                <button
                   onClick={closeCardDetail}
                   className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 >
@@ -641,6 +787,28 @@ export default function RescisoesPage() {
                 </button>
               </div>
             </div>
+
+            {/* Delete Confirmation */}
+            {confirmDelete && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3">
+                <p className="text-sm text-red-700 mb-2">Tem certeza que deseja excluir este card? Esta ação não pode ser desfeita.</p>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-white"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleDeleteCard}
+                    disabled={deletingCard}
+                    className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {deletingCard ? "Excluindo..." : "Confirmar Exclusão"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Info / Edit Mode */}
             {isEditing ? (
@@ -801,20 +969,57 @@ export default function RescisoesPage() {
                 </h3>
                 <div className="space-y-1">
                   {selectedCard.checklists.map((item) => (
-                    <label
-                      key={item.id}
-                      className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm hover:bg-slate-50"
-                    >
+                    <div key={item.id} className="group flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm hover:bg-slate-50">
                       <input
                         type="checkbox"
                         checked={item.feito}
                         onChange={() => handleToggleChecklist(item.id, !item.feito)}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 shrink-0"
                       />
-                      <span className={item.feito ? "text-slate-400 line-through" : "text-slate-700"}>
-                        {item.descricao}
-                      </span>
-                    </label>
+                      {editingChecklistId === item.id ? (
+                        <form
+                          onSubmit={(e) => { e.preventDefault(); handleSaveChecklistDesc(item.id); }}
+                          className="flex items-center gap-1 flex-1"
+                        >
+                          <input
+                            autoFocus
+                            value={editingChecklistDesc}
+                            onChange={(e) => setEditingChecklistDesc(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Escape") setEditingChecklistId(null); }}
+                            className="flex-1 rounded border border-slate-300 px-2 py-0.5 text-sm focus:border-blue-500 focus:outline-none"
+                          />
+                          <button type="submit" className="text-blue-600 hover:text-blue-700">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                          </button>
+                        </form>
+                      ) : (
+                        <span
+                          className={`flex-1 cursor-pointer ${item.feito ? "text-slate-400 line-through" : "text-slate-700"}`}
+                          onDoubleClick={() => { setEditingChecklistId(item.id); setEditingChecklistDesc(item.descricao); }}
+                          title="Duplo clique para editar"
+                        >
+                          {item.descricao}
+                        </span>
+                      )}
+                      <div className="hidden group-hover:flex items-center gap-0.5">
+                        {editingChecklistId !== item.id && (
+                          <button
+                            onClick={() => { setEditingChecklistId(item.id); setEditingChecklistDesc(item.descricao); }}
+                            className="rounded p-0.5 text-slate-300 hover:text-blue-500"
+                            title="Editar"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteChecklist(item.id)}
+                          className="rounded p-0.5 text-slate-300 hover:text-red-500"
+                          title="Excluir"
+                        >
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>

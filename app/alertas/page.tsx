@@ -18,9 +18,14 @@ async function getAlertas(escritorioId: string, status?: string, prioridade?: st
 
   const where: Record<string, unknown> = {};
   if (clienteIds.length > 0) {
-    where.contrato = { clienteId: { in: clienteIds } };
+    where.contrato = {
+      OR: [
+        { clienteId: { in: clienteIds } },
+        { clienteId: null },
+      ],
+    };
   } else {
-    where.contrato = { clienteId: "__none__" };
+    where.contrato = { clienteId: null };
   }
   if (status) where.status = status;
   if (prioridade) where.prioridade = prioridade;

@@ -1,5 +1,6 @@
 /**
- * PATCH /api/kanban/cards/[id] — editar campos do card de rescisão
+ * PATCH  /api/kanban/cards/[id] — editar campos do card de rescisão
+ * DELETE /api/kanban/cards/[id] — excluir card
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -53,5 +54,22 @@ export async function PATCH(
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     console.error("[PATCH /api/kanban/cards/[id]]", err);
     return NextResponse.json({ erro: message }, { status: 400 });
+  }
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
+  const { id } = await params;
+  try {
+    await prisma.kanbanCard.delete({ where: { id } });
+    return NextResponse.json({ mensagem: "Card excluído com sucesso." });
+  } catch (err) {
+    console.error("[DELETE /api/kanban/cards/[id]]", err);
+    return NextResponse.json({ erro: "Erro ao excluir card." }, { status: 500 });
   }
 }
