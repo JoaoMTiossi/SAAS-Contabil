@@ -1,18 +1,9 @@
 export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { format } from "date-fns";
+import { ContratosTable } from "@/components/contratos/ContratosTable";
 
 type Status = "ativo" | "encerrado" | "renovado" | "cancelado";
-
-const STATUS_CONFIG: Record<Status, string> = {
-  ativo: "bg-green-100 text-green-700",
-  encerrado: "bg-gray-100 text-gray-600",
-  renovado: "bg-blue-100 text-blue-700",
-  cancelado: "bg-red-100 text-red-700",
-};
-
-type ContratoLista = Awaited<ReturnType<typeof getContratos>>[number];
 
 async function getContratos(status?: string) {
   return prisma.contrato.findMany({
@@ -46,7 +37,7 @@ export default async function ContratosPage({
 
       {/* Filtros por status */}
       <div className="flex gap-2 flex-wrap">
-        {[undefined, "ativo", "encerrado", "renovado", "cancelado"].map((s) => (
+        {([undefined, "ativo", "encerrado", "renovado", "cancelado"] as const).map((s) => (
           <Link
             key={s ?? "todos"}
             href={s ? `/contratos?status=${s}` : "/contratos"}
@@ -69,53 +60,7 @@ export default async function ContratosPage({
           </Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Identificador</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Partes</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Término</th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-600">Parcelas</th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-600">Alertas</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {contratos.map((c: ContratoLista) => (
-                <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">
-                    {c.identificador ?? <span className="text-gray-400 italic">Sem ID</span>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    <div>{c.contratante ?? "—"}</div>
-                    <div className="text-xs text-gray-400">{c.contratado ?? "—"}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {c.dataFim ? format(c.dataFim, "dd/MM/yyyy") : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-center text-gray-600">
-                    {c._count.parcelas}
-                  </td>
-                  <td className="px-4 py-3 text-center text-gray-600">
-                    {c._count.alertas}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CONFIG[c.status as Status]}`}>
-                      {c.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link href={`/contratos/${c.id}`} className="text-blue-600 hover:underline text-xs">
-                      Ver →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ContratosTable contratos={contratos} />
       )}
     </div>
   );

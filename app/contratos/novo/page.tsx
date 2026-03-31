@@ -14,6 +14,7 @@ export default function NovoContratoPage() {
   const [carregando, setCarregando] = useState(false);
   const [extraido, setExtraido] = useState<ContratoExtraido | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [errosCampos, setErrosCampos] = useState<{ campo: string; mensagem: string }[]>([]);
 
   function handleExtraido(dados: unknown) {
     setExtraido(dados as ContratoExtraido);
@@ -24,6 +25,7 @@ export default function NovoContratoPage() {
     if (!extraido) return;
     setEtapa("confirmando");
     setErro(null);
+    setErrosCampos([]);
 
     try {
       const payload = {
@@ -49,6 +51,14 @@ export default function NovoContratoPage() {
 
       if (!res.ok) {
         const json = await res.json();
+        if (json.detalhes && Array.isArray(json.detalhes)) {
+          setErrosCampos(
+            json.detalhes.map((issue: { path: string[]; message: string }) => ({
+              campo: issue.path?.join(".") ?? "campo",
+              mensagem: issue.message,
+            }))
+          );
+        }
         throw new Error(json.erro ?? "Erro ao salvar contrato.");
       }
 
@@ -115,9 +125,18 @@ export default function NovoContratoPage() {
 
           <ExtractionReview dados={extraido} onChange={setExtraido} />
 
-          {erro && (
-            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {erro}
+          {(erro || errosCampos.length > 0) && (
+            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 space-y-1">
+              {erro && <p className="font-medium">{erro}</p>}
+              {errosCampos.length > 0 && (
+                <ul className="list-disc pl-4 space-y-0.5">
+                  {errosCampos.map((e, i) => (
+                    <li key={i}>
+                      <strong>{e.campo}:</strong> {e.mensagem}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 

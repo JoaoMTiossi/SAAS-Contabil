@@ -9,33 +9,72 @@ interface Props {
   onChange: (dados: ContratoExtraido) => void;
 }
 
+const REGEX_DATA = /^\d{2}\/\d{2}\/\d{4}$/;
+
+function validarData(v: string | null): string | null {
+  if (!v || v.trim() === "") return null;
+  if (!REGEX_DATA.test(v.trim())) return "Use o formato DD/MM/AAAA.";
+  const [d, m, y] = v.trim().split("/").map(Number);
+  const data = new Date(y, m - 1, d);
+  if (
+    data.getFullYear() !== y ||
+    data.getMonth() !== m - 1 ||
+    data.getDate() !== d
+  )
+    return "Data inválida.";
+  return null;
+}
+
 function InputField({
   label,
   value,
   onChange,
   placeholder,
   alerta,
+  isDate,
+  required,
 }: {
   label: string;
   value: string | null;
   onChange: (v: string) => void;
   placeholder?: string;
   alerta?: boolean;
+  isDate?: boolean;
+  required?: boolean;
 }) {
+  const [tocado, setTocado] = useState(false);
+
+  let erroMensagem: string | null = null;
+  if (tocado) {
+    if (required && !value?.trim()) erroMensagem = "Campo obrigatório.";
+    else if (isDate) erroMensagem = validarData(value);
+  }
+
+  const temErro = erroMensagem !== null;
+
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-gray-600">{label}</label>
+      <label className="mb-1 block text-xs font-medium text-gray-600">
+        {label}
+        {required && <span className="ml-0.5 text-red-500">*</span>}
+      </label>
       <input
         type="text"
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value || "")}
+        onBlur={() => setTocado(true)}
         placeholder={placeholder ?? "Não encontrado"}
         className={`w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1
-          ${alerta
+          ${temErro
+            ? "border-red-400 bg-red-50 focus:ring-red-400"
+            : alerta
             ? "border-yellow-300 bg-yellow-50 focus:ring-yellow-400"
             : "border-gray-200 focus:ring-blue-400"
           }`}
       />
+      {temErro && (
+        <p className="mt-0.5 text-xs text-red-600">{erroMensagem}</p>
+      )}
     </div>
   );
 }
@@ -143,6 +182,7 @@ export function ExtractionReview({ dados, onChange }: Props) {
             onChange={(v) => updateVencimento("data_inicio", v || null)}
             placeholder="DD/MM/AAAA"
             alerta={needsReview(conf.vencimento_geral)}
+            isDate
           />
           <InputField
             label="Data de Término"
@@ -150,6 +190,7 @@ export function ExtractionReview({ dados, onChange }: Props) {
             onChange={(v) => updateVencimento("data_fim", v || null)}
             placeholder="DD/MM/AAAA"
             alerta={needsReview(conf.vencimento_geral)}
+            isDate
           />
           <InputField
             label="Prazo Limite para Aviso de Não Renovação"
@@ -157,6 +198,7 @@ export function ExtractionReview({ dados, onChange }: Props) {
             onChange={(v) => updateVencimento("prazo_aviso_cancelamento", v || null)}
             placeholder="DD/MM/AAAA"
             alerta={needsReview(conf.vencimento_geral)}
+            isDate
           />
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-600">Renovação Automática</label>
@@ -236,6 +278,7 @@ export function ExtractionReview({ dados, onChange }: Props) {
                     onChange={(v) => updateParcela(idx, "vencimento", v || null)}
                     placeholder="DD/MM/AAAA"
                     alerta={!p.vencimento}
+                    isDate
                   />
                 </div>
                 <button
@@ -304,6 +347,7 @@ export function ExtractionReview({ dados, onChange }: Props) {
                     onChange={(v) => updateObrigacao(idx, "prazo", v || null)}
                     placeholder="DD/MM/AAAA"
                     alerta={!o.prazo}
+                    isDate
                   />
                 </div>
                 <button

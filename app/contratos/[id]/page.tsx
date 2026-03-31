@@ -8,6 +8,7 @@ import { TipoAlerta, PrioridadeAlerta, NivelConfianca } from "@/types/contrato";
 import { ParcelaActions } from "./ParcelaActions";
 import { ObrigacaoActions } from "./ObrigacaoActions";
 import { ContratoStatusActions } from "./ContratoStatusActions";
+import { ContratoPreview } from "./ContratoPreview";
 
 type ContratoDetalhado = Awaited<ReturnType<typeof getContrato>>;
 
@@ -60,7 +61,15 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
             {contrato.contratado && <span>Contratado: <strong>{contrato.contratado}</strong></span>}
           </div>
         </div>
-        <ContratoStatusActions id={contrato.id} status={contrato.status} />
+        <div className="flex items-center gap-2">
+          <a
+            href={`/contratos/${contrato.id}/assinar`}
+            className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100"
+          >
+            ✍ Assinar
+          </a>
+          <ContratoStatusActions id={contrato.id} status={contrato.status} />
+        </div>
       </div>
 
       {/* Vencimento Geral */}
@@ -183,6 +192,11 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
           </div>
         )}
       </section>
+
+      {/* Pré-visualização do Contrato */}
+      {contrato.textoOriginal && (
+        <ContratoPreview texto={contrato.textoOriginal} />
+      )}
 
       {/* Alertas */}
       <section className="rounded-xl border border-gray-200 bg-white p-5">

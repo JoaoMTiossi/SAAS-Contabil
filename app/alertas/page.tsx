@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { AlertaCard } from "@/components/alertas/AlertaCard";
+import { ProcessarAlertasBtn } from "@/components/alertas/ProcessarAlertasBtn";
 import { TipoAlerta, PrioridadeAlerta } from "@/types/contrato";
 
 type AlertaComContrato = Awaited<ReturnType<typeof getAlertas>>[number];
@@ -53,6 +54,7 @@ export default async function AlertasPage({
           <h1 className="text-2xl font-bold text-gray-900">Central de Alertas</h1>
           <p className="text-sm text-gray-500">{alertas.length} alerta(s) encontrado(s)</p>
         </div>
+        <ProcessarAlertasBtn />
       </div>
 
       {/* Filtros */}
@@ -96,8 +98,11 @@ export default async function AlertasPage({
       </div>
 
       {alertas.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 p-12 text-center text-sm text-gray-400">
-          Nenhum alerta encontrado com os filtros selecionados.
+        <div className="rounded-xl border border-dashed border-gray-200 p-12 text-center space-y-2">
+          <p className="text-sm text-gray-400">Nenhum alerta encontrado com os filtros selecionados.</p>
+          <p className="text-xs text-gray-400">
+            Use o botão <strong>&quot;⚙ Processar Alertas&quot;</strong> para gerar alertas a partir dos contratos cadastrados.
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
